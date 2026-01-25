@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="画像に透かしウォーターマークを追加するシンプルなWebツール">
+    <title>ウォーターマーク追加ツール</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;700&family=Great+Vibes&family=Noto+Sans+JP:wght@400;500;700&family=Parisienne&family=Zen+Maru+Gothic:wght@400;500;700&display=swap"
+        rel="stylesheet">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <meta name="theme-color" content="#0f0f1a">
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('service-worker.js')
+                .then(() => console.log('Service Worker Registered'))
+                .catch((err) => console.log('Service Worker Failed', err));
+        }
+    </script>
+</head>
+
+<body>
+    <div class="app-container">
+        <header class="header">
+            <h1>🎨 ウォーターマーク追加ツール</h1>
+            <p class="subtitle">画像に著作権表示を簡単追加</p>
+        </header>
+
+        <main class="main-content">
+            <!-- ドロップエリア -->
+            <div class="drop-zone" id="dropZone">
+                <div class="drop-zone-content">
+                    <div class="drop-icon">📁</div>
+                    <p class="drop-text">画像をドラッグ＆ドロップ</p>
+                    <p class="drop-subtext">または</p>
+                    <label class="file-select-btn">
+                        ファイルを選択
+                        <input type="file" id="fileInput" accept="image/*" hidden>
+                    </label>
+                </div>
+            </div>
+
+            <!-- プレビューエリア -->
+            <div class="preview-area" id="previewArea" style="display: none;">
+                <div class="preview-header">
+                    <h2>プレビュー</h2>
+                    <button class="reset-btn" id="resetBtn">🔄 別の画像を選択</button>
+                </div>
+                <div class="canvas-wrapper">
+                    <canvas id="canvas"></canvas>
+                </div>
+            </div>
+
+            <!-- コントロールパネル -->
+            <div class="control-panel" id="controlPanel" style="display: none;">
+                <h2>⚙️ 設定</h2>
+
+                <div class="control-group">
+                    <label>ウォーターマーク種類</label>
+                    <div class="mode-options">
+                        <button class="mode-btn active" data-mode="text">✏️ テキスト</button>
+                        <button class="mode-btn" data-mode="image">🖼️ 画像</button>
+                    </div>
+                </div>
+
+                <!-- 画像ウォーターマーク設定 -->
+                <div class="control-group image-watermark-section" id="imageWatermarkSection" style="display: none;">
+                    <label>透過画像をアップロード</label>
+                    <label class="watermark-upload-btn">
+                        📁 画像を選択
+                        <input type="file" id="watermarkImageInput" accept="image/png" hidden>
+                    </label>
+                    <div id="watermarkImagePreview" class="watermark-image-preview"></div>
+                </div>
+
+                <!-- テキストウォーターマーク設定 -->
+                <div class="text-watermark-section" id="textWatermarkSection">
+                    <div class="control-group">
+                        <label for="watermarkText">ウォーターマークテキスト</label>
+                        <input type="text" id="watermarkText" placeholder="例: © 2026 Your Name" value="© Sample">
+                    </div>
+
+                    <div class="control-group">
+                        <label>フォント</label>
+                        <div class="font-options">
+                            <button class="font-btn active" data-font="normal">📝 標準</button>
+                            <button class="font-btn" data-font="italic">✨ イタリック</button>
+                            <button class="font-btn" data-font="cute">🎀 まる</button>
+                        </div>
+                        <div class="font-options" style="margin-top: 0.5rem;">
+                            <button class="font-btn" data-font="great-vibes">✍️ 筆記体</button>
+                            <button class="font-btn" data-font="dancing">💃 ダンス</button>
+                            <button class="font-btn" data-font="parisienne">🇫🇷 パリジェンヌ</button>
+                        </div>
+                    </div>
+
+                    <div class="control-group">
+                        <label for="fontSize">フォントサイズ: <span id="fontSizeValue">24</span>px</label>
+                        <input type="range" id="fontSize" min="12" max="72" value="24">
+                    </div>
+
+                    <div class="control-group">
+                        <label>色</label>
+                        <div class="color-options">
+                            <button class="color-btn active" data-color="white">白</button>
+                            <button class="color-btn" data-color="black">黒</button>
+                            <button class="color-btn" data-color="auto">自動</button>
+                            <button class="color-btn" data-color="gradient">🌈 虹色</button>
+                        </div>
+                    </div>
+
+                    <div class="control-group">
+                        <label>スタイル</label>
+                        <div class="style-options">
+                            <button class="style-btn active" data-style="normal">通常</button>
+                            <button class="style-btn" data-style="outline">🔲 中抜き</button>
+                            <button class="style-btn" data-style="halftone">ドット</button>
+                        </div>
+                        <div id="halftoneOptions" class="halftone-options" style="display: none;">
+                            <label for="dotSize">ドットサイズ: <span id="dotSizeValue">3</span>px</label>
+                            <input type="range" id="dotSize" min="1" max="8" value="3">
+                        </div>
+                    </div>
+
+                    <!-- 共通設定 -->
+                    <div class="control-group">
+                        <label>合成モード（ブレンド）</label>
+                        <div class="blend-options">
+                            <button class="blend-btn active" data-blend="source-over">通常</button>
+                            <button class="blend-btn" data-blend="overlay">馴染ませる</button>
+                            <button class="blend-btn" data-blend="multiply">暗くする</button>
+                            <button class="blend-btn" data-blend="screen">明るくする</button>
+                        </div>
+                    </div>
+
+                    <div class="control-group">
+                        <label for="opacity">透明度: <span id="opacityValue">30</span>%</label>
+                        <input type="range" id="opacity" min="5" max="100" value="30">
+                    </div>
+
+                    <div class="control-group">
+                        <label for="angle">角度: <span id="angleValue">-30</span>°</label>
+                        <input type="range" id="angle" min="-90" max="90" value="-30">
+                    </div>
+
+                    <div class="control-group">
+
+                        <div class="control-group">
+                            <label>仕上げエフェクト</label>
+                            <div class="effect-controls">
+                                <div class="sub-control">
+                                    <label>🔲 ビネット (四隅効果)</label>
+                                    <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
+                                        <button class="color-btn active" data-vignette-color="black"
+                                            style="flex: 1; padding: 4px; font-size: 0.8rem;">⚫ 黒 (通常)</button>
+                                        <button class="color-btn" data-vignette-color="white"
+                                            style="flex: 1; padding: 4px; font-size: 0.8rem;">⚪ 白 (暗い画像用)</button>
+                                    </div>
+                                    <label for="vignette">濃さ: <span id="vignetteValue">0</span>%</label>
+                                    <input type="range" id="vignette" min="0" max="150" value="0">
+
+                                    <label for="vignetteSize" style="margin-top: 0.5rem;">広がり (エリア): <span
+                                            id="vignetteSizeValue">50</span>%</label>
+                                    <input type="range" id="vignetteSize" min="10" max="100" value="50">
+                                </div>
+                                <div class="sub-control">
+                                    <label for="texture">📜 質感ノイズ: <span id="textureValue">0</span>%</label>
+                                    <input type="range" id="texture" min="0" max="80" value="0">
+                                </div>
+                                <div class="sub-control">
+                                    <label for="integration">🌫️ 文字のなじみ度: <span id="integrationValue">0</span>%</label>
+                                    <input type="range" id="integration" min="0" max="100" value="0">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="control-group">
+                            <label for="jitter">🔀 ゆらぎ (Jitter): <span id="jitterValue">0</span>%</label>
+                            <input type="range" id="jitter" min="0" max="100" value="0">
+                        </div>
+
+                        <div class="control-group">
+                            <label for="spacing">間隔: <span id="spacingValue">150</span>px</label>
+                            <input type="range" id="spacing" min="50" max="300" value="150">
+                        </div>
+
+                        <div class="control-group">
+                            <label for="wmScale">ウォーターマークサイズ: <span id="wmScaleValue">100</span>%</label>
+                            <input type="range" id="wmScale" min="10" max="200" value="100">
+                        </div>
+
+                        <div class="control-group protection-section">
+                            <div class="protection-header">
+                                <label class="protection-label">
+                                    <input type="checkbox" id="noiseProtection">
+                                    <span>🛡️ AIジャマー (除去を妨害)</span>
+                                </label>
+                                <div class="jammer-strength-control" id="jammerStrengthControl" style="display: none;">
+                                    <label for="jammerStrength" style="font-size: 0.8rem;">強度: <span
+                                            id="jammerStrengthValue">30</span></label>
+                                    <input type="range" id="jammerStrength" min="10" max="100" value="30">
+                                </div>
+                            </div>
+                            <p class="protection-desc">不規則な色ズレ（カオス攻撃）を埋め込みます。AIの予測を混乱させ、除去跡を汚くします。</p>
+                        </div>
+
+                        <button class="download-btn" id="downloadBtn">
+                            💾 ダウンロード (PNG)
+                        </button>
+                    </div>
+        </main>
+
+        <footer class="footer">
+            <p>画像はサーバーにアップロードされません。すべてブラウザ内で処理されます。</p>
+        </footer>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+
+</html>
