@@ -3,6 +3,9 @@
  * Canvas APIを使用して画像にタイル状のウォーターマークを追加
  */
 
+// ビルドID（改ざん検出モードで使用）
+const BUILD_ID = 'v2025-01-27';
+
 // DOM要素の参照
 const dropZone = document.getElementById('dropZone');
 const fileInput = document.getElementById('fileInput');
@@ -19,7 +22,8 @@ const opacitySlider = document.getElementById('opacity');
 const fontSizeSlider = document.getElementById('fontSize');
 const angleSlider = document.getElementById('angle');
 const spacingSlider = document.getElementById('spacing');
-const colorBtns = document.querySelectorAll('.color-btn');
+// Fix: button selector strict scoping
+const colorBtns = document.querySelectorAll('.color-options .color-btn');
 const styleBtns = document.querySelectorAll('.style-btn');
 const fontBtns = document.querySelectorAll('.font-btn');
 const modeBtns = document.querySelectorAll('.mode-btn');
@@ -49,6 +53,26 @@ const dotSizeValue = document.getElementById('dotSizeValue');
 const vignetteValue = document.getElementById('vignetteValue');
 const textureValue = document.getElementById('textureValue');
 const integrationValue = document.getElementById('integrationValue');
+
+// Diff Tool & Tabs
+const tabBtns = document.querySelectorAll('.tab-btn');
+const mainSection = document.getElementById('mainSection');
+const diffSection = document.getElementById('diffSection');
+const detectionCheckbox = document.getElementById('tamperDetection');
+
+// Diff Logic Elements
+const beforeValues = { img: null };
+const afterValues = { img: null };
+const beforeInput = document.getElementById('beforeImage');
+const afterInput = document.getElementById('afterImage');
+const generateDiffBtn = document.getElementById('generateDiffBtn');
+const diffResult = document.getElementById('diffResult');
+const diffCanvas = document.getElementById('diffCanvas');
+const downloadDiffBtn = document.getElementById('downloadDiffBtn');
+const gainSlider = document.getElementById('gainSlider');
+const thresholdSlider = document.getElementById('thresholdSlider');
+const gainValue = document.getElementById('gainValue');
+const thresholdValue = document.getElementById('thresholdValue');
 
 let originalImage = null;
 let currentColorMode = 'white';
@@ -535,81 +559,234 @@ vignetteSizeSlider.addEventListener('input', () => {
 // ... existing code ...
 
 // ビネット（周辺減光/増光）を描画
+// v15-Fix: 罠ノイズが画面全体を覆って文字を消してしまう不具合を修正
+// オフスクリーンキャンバスを使って、ノイズをビネットの形（四隅）だけにマスクする
 function renderVignette(strength) {
     // スライダーがない場合（古いキャッシュ）はデフォルト50扱い
     const size = vignetteSizeSlider ? parseInt(vignetteSizeSlider.value) : 50;
 
     // 広がり(Area)が大きいほど、開始位置(innerRadius)を小さくする＝中心まで攻める
-    // size 10 -> inner 60% (浅い)
-    // size 100 -> inner 0% (中心まで塗りつぶし)
     const innerFactor = 0.6 * (1 - (size / 100));
-
     const maxRadius = Math.max(canvas.width, canvas.height) * 0.8;
     const innerRadius = maxRadius * innerFactor;
 
-    const gradient = ctx.createRadialGradient(
+    // オフスクリーンキャンバス作成（マスク処理用）
+    const vCanvas = document.createElement('canvas');
+    vCanvas.width = canvas.width;
+    vCanvas.height = canvas.height;
+    const vCtx = vCanvas.getContext('2d');
+
+    // 1. グラデーション形状を作成
+    const gradient = vCtx.createRadialGradient(
         canvas.width / 2, canvas.height / 2, innerRadius,
         canvas.width / 2, canvas.height / 2, maxRadius
     );
 
-    // 強さに応じて透明度を調整 (最大1.0まで)
-    const opacity = Math.min(1, (strength / 100) * 0.9);
-
     // 色の定義
     const colorRGB = currentVignetteColor === 'white' ? '255, 255, 255' : '0, 0, 0';
+
+    // 強さに応じて透明度を調整
+    const opacity = Math.min(1, (strength / 100) * 0.9);
 
     gradient.addColorStop(0, `rgba(${colorRGB}, 0)`);
     gradient.addColorStop(1, `rgba(${colorRGB}, ${opacity})`);
 
-    ctx.fillStyle = gradient;
+    vCtx.fillStyle = gradient;
+    vCtx.fillRect(0, 0, canvas.width, canvas.height); // グラデーション描画
 
-    // 合成モードの切り替え
-    // 白の場合は 'screen' や 'lighten' が良いが、単純な被せでも効果的
-    // 黒の場合は通常通り
-    ctx.globalCompositeOperation = 'source-over';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // 2. 罠（Trap）の発動: マスクされた領域にノイズを焼き込む
+    if (currentVignetteColor === 'black' || currentVignetteColor === 'auto') {
+        vCtx.globalCompositeOperation = 'source-in'; // 描画済みのグラデーション部分にだけ塗る
+
+        const trapPattern = createTrapNoisePattern(vCtx);
+        vCtx.fillStyle = trapPattern;
+
+        // ノイズ自体の透明度（少し控えめに）
+        vCtx.globalAlpha = 0.5;
+        vCtx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // 戻す
+        vCtx.globalAlpha = 1.0;
+
+        // 重要: 'source-in' すると元のグラデーションの色が消えてノイズだけになる
+        // なので、ノイズを描く前のグラデーション（ベース）が必要だが…
+        // 実際は「黒いノイズ」を描画すればビネット代わりになるのでOK
+        // いや、TrapPatternはカラフルなので、そのまま描くと派手すぎる
+        // → 'source-atop' でグラデーションの上に重ねる方が安全か？
+        // いや、source-inだと透明部分が守られるのが最大のメリット。
+        // カラフルなノイズを「黒いグラデ」と混ぜたい。
+    }
+
+    // 3. メインキャンバスに合成
+    ctx.save();
+
+    // 罠モードの場合、vCanvasには「ノイズ」が入っている
+    // これをメイン画像に乗せる。
+    // 黒ビネットなら 'multiply' や 'overlay'
+    // でもTrapNoiseは不透明度を持っているので、単純に描画すると四隅がその色になる
+    if (currentVignetteColor === 'black' || currentVignetteColor === 'auto') {
+        // vCanvasの内容: [四隅にある半透明のRGBノイズ]
+
+        // まず通常の黒ビネット（ベース）を描く必要がある？
+        // TrapPatternを使うとvCanvasはそれだけで埋まる。
+        // ベースの黒さを担保するために、TrapPattern自体を少し暗くするか、
+        // メインキャンバスに2回描く（黒グラデ + ノイズグラデ）。
+
+        // A. まず純粋な黒グラデを描く（これでビネット効果）
+        // オフスクリーンcanvasを再利用するのは面倒なので、メインctxで直接描く
+        const simpleGrad = ctx.createRadialGradient(
+            canvas.width / 2, canvas.height / 2, innerRadius,
+            canvas.width / 2, canvas.height / 2, maxRadius
+        );
+        simpleGrad.addColorStop(0, `rgba(0,0,0,0)`);
+        simpleGrad.addColorStop(1, `rgba(0,0,0,${opacity})`);
+
+        ctx.fillStyle = simpleGrad;
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // B. その上にノイズ（vCanvas）を 'overlay' で乗せる
+        ctx.globalCompositeOperation = 'overlay';
+        ctx.drawImage(vCanvas, 0, 0);
+
+    } else {
+        // 通常（白ビネットなど）はそのまま描画
+        ctx.globalCompositeOperation = 'source-over'; // または screen
+        ctx.drawImage(vCanvas, 0, 0);
+    }
+
+    ctx.restore();
 }
 // ... existing code ...
 
 // 質感ノイズ（テクスチャ）を描画
+// v17: Quantum Noise (量子ノイズ) 化
+// 単純なモノクロノイズではなく、Trapと同じRGBノイズを画面全体に撒くことで
+// 背景の「単純さ」を消し去る
 function renderTexture(strength, alphaScale = 1.0) {
-    // ノイズ用の小さなキャンバスを作成（パフォーマンスのため）
-    const noiseCanvas = document.createElement('canvas');
-    const noiseSize = 256;
-    noiseCanvas.width = noiseSize;
-    noiseCanvas.height = noiseSize;
-    const noiseCtx = noiseCanvas.getContext('2d');
+    if (strength <= 0) return;
 
-    const imageData = noiseCtx.createImageData(noiseSize, noiseSize);
-    const data = imageData.data;
+    // 罠（Trap）用のパターンを流用（これが最強のRGBノイズなので）
+    const pattern = createTrapNoisePattern(ctx);
 
-    // 強さに応じたノイズ生成
-    // モノクロノイズ
-    for (let i = 0; i < data.length; i += 4) {
-        const val = Math.random() * 255;
-        data[i] = val;     // R
-        data[i + 1] = val; // G
-        data[i + 2] = val; // B
-        data[i + 3] = 100; // Alpha (ベースの透明度をかなり上げる)
-    }
-
-    noiseCtx.putImageData(imageData, 0, 0);
-
-    // パターンとして描画
-    const pattern = ctx.createPattern(noiseCanvas, 'repeat');
     ctx.fillStyle = pattern;
 
     // オーバーレイで重ねる
     ctx.globalCompositeOperation = 'overlay';
 
     // 強度調整
-    ctx.globalAlpha = (strength / 100) * alphaScale; // 最大1.0まで許可
+    // ノイズは強すぎると画像が汚れるので、ユーザー指定値より少し控えめに補正
+    ctx.globalAlpha = (strength / 100) * alphaScale * 0.8;
 
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     // リセット
     ctx.globalAlpha = 1;
     ctx.globalCompositeOperation = 'source-over';
+}
+
+// アナログ風ノイズパターン生成（鉛筆の粉のような質感）
+// type: 'dark' (鉛筆/黒) または 'light' (チョーク/白)
+function createAnalogNoisePattern(ctx, type = 'dark') {
+    const pCanvas = document.createElement('canvas');
+    pCanvas.width = 64;
+    pCanvas.height = 64;
+    const pCtx = pCanvas.getContext('2d');
+
+    const imgData = pCtx.createImageData(64, 64);
+    const data = imgData.data;
+
+    for (let i = 0; i < data.length; i += 4) {
+        let val;
+        // ホログラムモード（銀色/虹色微粒子）
+        if (type === 'holographic') {
+            // ベースは明るい白銀色だが、RGBを微妙にズラして「色情報」を持たせる
+            // 見た目は「キラキラした白」だが、AIには「多色ノイズ」として映る
+            const base = 220;
+            data[i] = base + (Math.random() - 0.5) * 60;   // R: 190~250
+            data[i + 1] = base + (Math.random() - 0.5) * 60; // G: 190~250
+            data[i + 2] = base + (Math.random() - 0.5) * 60; // B: 190~250
+        }
+        // チョークモード（白系ノイズ）
+        else if (type === 'light') {
+            // 200〜255の明るい値
+            val = 200 + Math.random() * 55;
+            data[i] = val;
+            data[i + 1] = val;
+            data[i + 2] = val;
+        } else {
+            // 鉛筆モード（黒系ノイズ）
+            val = Math.random() * 80;
+            data[i] = val;
+            data[i + 1] = val;
+            data[i + 2] = val;
+        }
+
+        // アルファをランダムにして「ムラ」を作る
+        data[i + 3] = 100 + Math.random() * 155;
+    }
+    pCtx.putImageData(imgData, 0, 0);
+    return ctx.createPattern(pCanvas, 'repeat');
+}
+
+// 改ざん検出用ラベルの刻印
+function stampDetectionLabel(ctx, w, h) {
+    ctx.save();
+    ctx.globalAlpha = 0.35; // 少し目立たせる
+    ctx.font = '14px "Noto Sans JP", sans-serif';
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'bottom';
+
+    // 背景が暗いか明るいかで文字色を変えるべきだが、
+    // 基本的に「検出レイヤー」は「目に見える」ことが重要なので白文字にドロップシャドウで対応
+    ctx.fillStyle = '#ffffff';
+    ctx.shadowColor = 'rgba(0,0,0,0.8)';
+    ctx.shadowBlur = 4;
+
+    // 右下に配置
+    ctx.fillText(`検出用レイヤーを含む (${BUILD_ID})`, w - 12, h - 10);
+    ctx.restore();
+}
+
+// 罠（Trap）用ノイズパターン生成: 一見ただの暗闇だが、AI殺しのRGBノイズを含ませる
+function createTrapNoisePattern(ctx) {
+    const pCanvas = document.createElement('canvas');
+    pCanvas.width = 128;
+    pCanvas.height = 128;
+    const pCtx = pCanvas.getContext('2d');
+
+    const imgData = pCtx.createImageData(128, 128);
+    const data = imgData.data;
+
+    for (let i = 0; i < data.length; i += 4) {
+        // RGBをバラバラに設定（人間の目にはグレー/黒に見えるが、データ上は極彩色のノイズ）
+        // AIが「彩度強調」や「ノイズ除去」をかけた瞬間に色が暴発する
+        const base = 20;
+        const range = 60; // 結構振れ幅を持たせる
+
+        data[i] = base + Math.random() * range;     // R
+        data[i + 1] = base + Math.random() * range;   // G
+        data[i + 2] = base + Math.random() * range;   // B
+        data[i + 3] = 255; // 不透明
+    }
+    pCtx.putImageData(imgData, 0, 0);
+    return ctx.createPattern(pCanvas, 'repeat');
+}
+
+// かすれ（Erasure）効果：ランダムに微小な穴を開けてアナログ感を出す
+function addKasureEffect(ctx, width, height) {
+    ctx.save();
+    ctx.globalCompositeOperation = 'destination-out';
+    // 画面の少しの割合をランダムに消す
+    const density = (width * height) * 0.01; // 1%
+    for (let i = 0; i < density; i++) {
+        const x = Math.random() * width;
+        const y = Math.random() * height;
+        // 1px〜2pxの点で削る
+        const size = Math.random() > 0.7 ? 2 : 1;
+        ctx.fillRect(x, y, size, size);
+    }
+    ctx.restore();
 }
 
 // 画像ウォーターマークを描画（レイヤー版）
@@ -770,6 +947,32 @@ function renderTextWatermarkToLayer(targetCtx, spacing, scale, angle, jitterStre
                 // 中抜き描画
                 targetCtx.strokeStyle = color;
                 targetCtx.strokeText(text, 0, 0);
+            } else if (styleToUse === 'analog') {
+                // ✏️ アナログ描画 (鉛筆/チョーク/ホログラム風)
+                let patternType = 'dark';
+
+                if (colorModeToUse === 'gradient') {
+                    // 虹色ボタン選択時 → ホログラム銀（対AI最強モード）
+                    patternType = 'holographic';
+                } else if (colorModeToUse === 'white' || colorModeToUse === 'auto') {
+                    // 白/自動 → チョーク
+                    patternType = 'light';
+                }
+
+                const pattern = createAnalogNoisePattern(targetCtx, patternType);
+                targetCtx.fillStyle = pattern;
+
+                // Micro-Jitter: 少しずらして重ね書きすることで、線の輪郭をざらつかせる
+                // 透明度を下げて重ねることで、濃淡のムラも表現
+                targetCtx.globalAlpha = 0.6;
+                const passes = 3;
+                for (let k = 0; k < passes; k++) {
+                    // ±0.75px の微小なズレ
+                    const mkX = (Math.random() - 0.5) * 1.5;
+                    const mkY = (Math.random() - 0.5) * 1.5;
+                    targetCtx.fillText(text, mkX, mkY);
+                }
+                targetCtx.globalAlpha = 1.0; // 戻す
             } else {
                 // 通常描画
                 targetCtx.fillStyle = color;
@@ -778,6 +981,11 @@ function renderTextWatermarkToLayer(targetCtx, spacing, scale, angle, jitterStre
 
             targetCtx.restore();
         }
+    }
+
+    // アナログモードの場合、最後にかすれ（Erasure）処理を入れてビンテージ感を出す
+    if (styleToUse === 'analog') {
+        addKasureEffect(targetCtx, canvas.width, canvas.height);
     }
 
     targetCtx.restore();
@@ -889,16 +1097,183 @@ function getTextColor(x, y) {
 // 画像ダウンロード
 // =====================================================
 
-function downloadImage() {
+// =====================================================
+// 画像ダウンロード
+// =====================================================
+
+// ダウンロード処理
+downloadBtn.addEventListener('click', () => {
+    // Canvasが空なら何もしない
     if (!originalImage) return;
 
-    // ファイル名を生成
-    const timestamp = new Date().toISOString().slice(0, 10);
-    const filename = `watermarked_${timestamp}.png`;
-
-    // ダウンロードリンクを作成
     const link = document.createElement('a');
-    link.download = filename;
+
+    // タイムスタンプ生成
+    const timestamp = new Date().toISOString().slice(0, 10);
+
+    // 改ざん検出モードならファイル名に _detect を付ける
+    const suffix = (detectionCheckbox && detectionCheckbox.checked) ? '_detect' : '';
+    link.download = `watermarked_${timestamp}${suffix}.png`;
+
     link.href = canvas.toDataURL('image/png');
     link.click();
+});
+
+// ファイル選択ボタンの連携（見た目カスタマイズ用）
+
+// =====================================================
+// タブ切り替え & 改ざん検出Diff機能
+// =====================================================
+
+// タブ切り替え
+if (tabBtns) {
+    tabBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            // アクティブクラス切り替え
+            tabBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+
+            // セクション表示切り替え
+            const tabName = btn.dataset.tab;
+            if (tabName === 'main') {
+                mainSection.style.display = 'block';
+                diffSection.style.display = 'none';
+            } else {
+                mainSection.style.display = 'none';
+                diffSection.style.display = 'block';
+            }
+        });
+    });
+}
+
+// Diff用 画像読み込みヘルパー
+function loadDiffImage(file, previewElem, valueStore) {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+            valueStore.img = img;
+            previewElem.innerHTML = '';
+            // プレビュー表示（アスペクト比保持）
+            img.style.maxWidth = '100%';
+            img.style.maxHeight = '200px';
+            previewElem.appendChild(img);
+        };
+        img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+}
+
+if (beforeInput) {
+    beforeInput.addEventListener('change', (e) => {
+        loadDiffImage(e.target.files[0], document.getElementById('beforePreview'), beforeValues);
+    });
+}
+
+if (afterInput) {
+    afterInput.addEventListener('change', (e) => {
+        loadDiffImage(e.target.files[0], document.getElementById('afterPreview'), afterValues);
+    });
+}
+
+// Diff生成実行
+if (generateDiffBtn) {
+    generateDiffBtn.addEventListener('click', () => {
+        if (!beforeValues.img || !afterValues.img) {
+            alert('Before画像とAfter画像の両方を選択してください。');
+            return;
+        }
+
+        const gain = parseInt(gainSlider.value);
+        const threshold = parseInt(thresholdSlider.value);
+
+        makeDiff(beforeValues.img, afterValues.img, gain, threshold);
+
+        // 結果エリア表示
+        diffResult.style.display = 'block';
+    });
+}
+
+// Diffスライダー（数値表示）
+if (gainSlider) {
+    gainSlider.addEventListener('input', () => {
+        gainValue.textContent = gainSlider.value;
+    });
+}
+if (thresholdSlider) {
+    thresholdSlider.addEventListener('input', () => {
+        thresholdValue.textContent = thresholdSlider.value;
+    });
+}
+
+// Diff生成ロジック
+function makeDiff(beforeImg, afterImg, gain, threshold) {
+    // 基準サイズはBefore（原本）に合わせる
+    const w = beforeImg.width;
+    const h = beforeImg.height;
+
+    // キャンバス準備
+    diffCanvas.width = w;
+    diffCanvas.height = h;
+    const ctx = diffCanvas.getContext('2d');
+
+    // 1. Beforeデータの取得
+    const beforeCanvas = document.createElement('canvas');
+    beforeCanvas.width = w;
+    beforeCanvas.height = h;
+    const beforeCtx = beforeCanvas.getContext('2d');
+    beforeCtx.drawImage(beforeImg, 0, 0);
+    const beforeData = beforeCtx.getImageData(0, 0, w, h).data;
+
+    // 2. Afterデータの取得 (伸縮: cover/contain等も考えられるが、一旦fillで比較)
+    const afterCanvas = document.createElement('canvas');
+    afterCanvas.width = w;
+    afterCanvas.height = h;
+    const afterCtx = afterCanvas.getContext('2d');
+    // サイズ違いを吸収するため、強制的にBeforeサイズにリサイズ描画
+    afterCtx.drawImage(afterImg, 0, 0, w, h);
+    const afterData = afterCtx.getImageData(0, 0, w, h).data;
+
+    // 3. 差分計算
+    const outImgData = ctx.createImageData(w, h);
+    const outData = outImgData.data;
+
+    for (let i = 0; i < beforeData.length; i += 4) {
+        // RGB差分の絶対値
+        const dr = Math.abs(beforeData[i] - afterData[i]);
+        const dg = Math.abs(beforeData[i + 1] - afterData[i + 1]);
+        const db = Math.abs(beforeData[i + 2] - afterData[i + 2]);
+
+        // 平均差分
+        let diff = (dr + dg + db) / 3;
+
+        // 閾値処理 (小さいノイズを無視)
+        if (diff < threshold) {
+            diff = 0;
+        } else {
+            diff = diff - threshold;
+        }
+
+        // 増幅 (見やすくする)
+        diff = Math.min(255, diff * gain);
+
+        // グレー画像として出力
+        outData[i] = diff;   // R
+        outData[i + 1] = diff; // G
+        outData[i + 2] = diff; // B
+        outData[i + 3] = 255;  // Alpha (完全不透明)
+    }
+
+    ctx.putImageData(outImgData, 0, 0);
+}
+
+// Diff画像保存
+if (downloadDiffBtn) {
+    downloadDiffBtn.addEventListener('click', () => {
+        const link = document.createElement('a');
+        link.download = 'diff_result.png';
+        link.href = diffCanvas.toDataURL('image/png');
+        link.click();
+    });
 }
