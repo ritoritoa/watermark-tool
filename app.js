@@ -100,6 +100,7 @@ function init() {
     setupModeButtons();
     setupBlendButtons();
     setupWatermarkImageUpload();
+    setupEffectControls();
 }
 
 // =====================================================
@@ -297,7 +298,9 @@ function setupModeButtons() {
         wmScaleValue.textContent = wmScaleSlider.value;
         renderWatermark();
     });
+}
 
+function setupEffectControls() {
     // 仕上げエフェクトスライダー
     vignetteSlider.addEventListener('input', () => {
         vignetteValue.textContent = vignetteSlider.value;
@@ -322,7 +325,7 @@ function setupModeButtons() {
         });
     }
 
-    // ノイズ保護チェックボックス
+    // ノイズ保護チェックボックス  
     noiseProtection.addEventListener('change', () => {
         // チェック時のみスライダーを表示
         const control = document.getElementById('jammerStrengthControl');
@@ -337,9 +340,251 @@ function setupModeButtons() {
         jammerStrengthValue.textContent = jammerStrengthSlider.value;
         renderWatermark();
     });
+
+    // ビネット色選択ボタン
+    const vignetteBtns = document.querySelectorAll('[data-vignette-color]');
+    vignetteBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            vignetteBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentVignetteColor = btn.dataset.vignetteColor;
+            renderWatermark();
+        });
+    });
+
+    // ビネットサイズスライダー
+    vignetteSizeSlider.addEventListener('input', () => {
+        vignetteSizeValue.textContent = vignetteSizeSlider.value;
+        renderWatermark();
+    });
 }
 
-// ... existing code ...
+// =====================================================
+// ウォーターマーク描画関数（レイヤーへの描画）
+// =====================================================
+
+// 画像ウォーターマークをレイヤーに描画
+function renderImageWatermarkToLayer(targetCtx, spacing, scale, angle, jitterStrength) {
+    if (!watermarkImage) return;
+
+    const wmWidth = watermarkImage.width * scale;
+    const wmHeight = watermarkImage.height * scale;
+
+    targetCtx.save();
+    targetCtx.translate(canvas.width / 2, canvas.height / 2);
+    targetCtx.rotate((angle * Math.PI) / 180);
+
+    const startX = -(canvas.width * 2);
+    const startY = -(canvas.height * 2);
+    const endX = canvas.width * 2;
+    const endY = canvas.height * 2;
+
+    for (let y = startY; y < endY; y += spacing) {
+        for (let x = startX; x < endX; x += spacing) {
+            // ジッター (揺らぎ)
+            const jx = jitterStrength > 0 ? (Math.random() - 0.5) * jitterStrength : 0;
+            const jy = jitterStrength > 0 ? (Math.random() - 0.5) * jitterStrength : 0;
+
+            targetCtx.drawImage(
+                watermarkImage,
+                x + jx - wmWidth / 2,
+                y + jy - wmHeight / 2,
+                wmWidth,
+                wmHeight
+            );
+        }
+    }
+
+    targetCtx.restore();
+}
+
+// テキストウォーターマークをレイヤーに描画
+function renderTextWatermarkToLayer(targetCtx, spacing, scale, angle, jitterStrength, config) {
+    const text = watermarkText.value || '© Sample';
+
+    // configがある場合はそれを使う（Phantom Layer用）、ない場合は通常設定
+    const fontSize = config ? config.fontSize : parseInt(fontSizeSlider.value) * scale;
+    const style = config ? config.style : currentStyle;
+    const colorMode = config ? config.colorMode : currentColorMode;
+
+    targetCtx.save();
+    targetCtx.font = getFontString(fontSize);
+    targetCtx.textAlign = 'center';
+    targetCtx.textBaseline = 'middle';
+
+    // 回転の中心を設定
+    targetCtx.translate(canvas.width / 2, canvas.height / 2);
+    targetCtx.rotate((angle * Math.PI) / 180);
+
+    // タイル状に配置するための範囲
+    const startX = -(canvas.width * 2);
+    const startY = -(canvas.height * 2);
+    const endX = canvas.width * 2;
+    const endY = canvas.height * 2;
+
+    // スタイルに応じて描画
+    if (style === 'halftone') {
+        const dotSize = parseInt(dotSizeSlider.value);
+        renderHalftoneText(targetCtx, text, fontSize, startX, startY, endX, endY, spacing, spacing, dotSize, jitterStrength);
+    } else if (style === 'analog') {
+        renderAnalogText(targetCtx, text, fontSize, startX, startY, endX, endY, spacing, spacing, jitterStrength);
+    } else {
+        // 通常 or 中抜き
+        for (let y = startY; y < endY; y += spacing) {
+            for (let x = startX; x < endX; x += spacing) {
+                // ジッター (揺らぎ)
+                const jx = jitterStrength > 0 ? (Math.random() - 0.5) * jitterStrength : 0;
+                const jy = jitterStrength > 0 ? (Math.random() - 0.5) * jitterStrength : 0;
+
+                const finalX = x + jx;
+                const finalY = y + jy;
+
+                // テキスト色を決定
+                const color = config && config.color ? config.color : getTextColor(finalX, finalY);
+
+                if (style === 'outline') {
+                    // 中抜きスタイル
+                    targetCtx.strokeStyle = color;
+                    targetCtx.lineWidth = 2;
+                    targetCtx.strokeText(text, finalX, finalY);
+                } else {
+                    // 通常スタイル
+                    targetCtx.fillStyle = color;
+                    targetCtx.fillText(text, finalX, finalY);
+                }
+            }
+        }
+    }
+
+    targetCtx.restore();
+}
+
+// ハーフトーン（ドット）スタイル描画
+function renderHalftoneText(ctx, text, fontSize, startX, startY, endX, endY, textWidth, textHeight, dotSize, jitterStrength) {
+    // テキストの形状を仮想キャンバスで取得
+    const tempCanvas = document.createElement('canvas');
+    const tempCtx = tempCanvas.getContext('2d');
+
+    // テキストサイズを測定
+    const metrics = ctx.measureText(text);
+    const textW = Math.ceil(metrics.width) + 10;
+    const textH = fontSize + 10;
+
+    tempCanvas.width = textW;
+    tempCanvas.height = textH;
+
+    // テキストを描画
+    tempCtx.font = getFontString(fontSize);
+    tempCtx.textAlign = 'center';
+    tempCtx.textBaseline = 'middle';
+    tempCtx.fillStyle = 'black';
+    tempCtx.fillText(text, textW / 2, textH / 2);
+
+    // ピクセルデータを取得
+    const imageData = tempCtx.getImageData(0, 0, textW, textH);
+    const data = imageData.data;
+
+    // グラデーション準備
+    let gradientStyle = null;
+    if (currentColorMode === 'gradient') {
+        const grad = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+        grad.addColorStop(0, '#ff0000');
+        grad.addColorStop(0.15, '#ff7f00');
+        grad.addColorStop(0.3, '#ffff00');
+        grad.addColorStop(0.45, '#00ff00');
+        grad.addColorStop(0.6, '#0000ff');
+        grad.addColorStop(0.75, '#4b0082');
+        grad.addColorStop(1, '#9400d3');
+        gradientStyle = grad;
+    }
+
+    const dotSpacing = 3;
+
+    // タイル状に配置
+    for (let tileY = startY; tileY < endY; tileY += textHeight) {
+        for (let tileX = startX; tileX < endX; tileX += textWidth) {
+            // ジッター
+            const jx = jitterStrength > 0 ? (Math.random() - 0.5) * jitterStrength : 0;
+            const jy = jitterStrength > 0 ? (Math.random() - 0.5) * jitterStrength : 0;
+
+            const finalTileX = tileX + jx;
+            const finalTileY = tileY + jy;
+
+            // ドットパターンで描画
+            for (let dy = 0; dy < textH; dy += dotSpacing) {
+                for (let dx = 0; dx < textW; dx += dotSpacing) {
+                    const pixelX = Math.floor(dx);
+                    const pixelY = Math.floor(dy);
+                    const idx = (pixelY * textW + pixelX) * 4;
+                    const alpha = data[idx + 3];
+
+                    if (alpha > 50) {
+                        let color;
+                        if (currentColorMode === 'gradient') {
+                            color = gradientStyle;
+                        } else {
+                            color = getTextColor(finalTileX + dx, finalTileY + dy);
+                        }
+
+                        ctx.fillStyle = color;
+                        ctx.beginPath();
+                        ctx.arc(
+                            finalTileX + dx - textW / 2,
+                            finalTileY + dy - textH / 2,
+                            dotSize * (alpha / 255),
+                            0,
+                            Math.PI * 2
+                        );
+                        ctx.fill();
+                    }
+                }
+            }
+        }
+    }
+}
+
+// アナログスタイル描画（手書き風）
+function renderAnalogText(ctx, text, fontSize, startX, startY, endX, endY, textWidth, textHeight, jitterStrength) {
+    for (let y = startY; y < endY; y += textHeight) {
+        for (let x = startX; x < endX; x += textWidth) {
+            const jx = jitterStrength > 0 ? (Math.random() - 0.5) * jitterStrength * 2 : 0;
+            const jy = jitterStrength > 0 ? (Math.random() - 0.5) * jitterStrength * 2 : 0;
+            const jitterRotation = (Math.random() - 0.5) * 5;
+
+            ctx.save();
+            ctx.translate(x + jx, y + jy);
+            ctx.rotate((jitterRotation * Math.PI) / 180);
+
+            const color = getTextColor(x, y);
+            ctx.fillStyle = color;
+            ctx.globalAlpha = 0.8 + Math.random() * 0.2;
+            ctx.fillText(text, 0, 0);
+
+            ctx.restore();
+        }
+    }
+}
+
+// テキスト色を取得
+function getTextColor(x, y) {
+    if (currentColorMode === 'white') {
+        return 'rgba(255, 255, 255, 1)';
+    } else if (currentColorMode === 'black') {
+        return 'rgba(0, 0, 0, 1)';
+    } else if (currentColorMode === 'gradient') {
+        return 'rgba(255, 0, 128, 1)';
+    } else {
+        // 自動モード
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2;
+        const safeX = Math.max(0, Math.min(canvas.width - 1, Math.floor(centerX)));
+        const safeY = Math.max(0, Math.min(canvas.height - 1, Math.floor(centerY)));
+
+        const imageData = ctx.getImageData(safeX, safeY, 1, 1).data;
+        const brightness = (imageData[0] * 299 + imageData[1] * 587 + imageData[2] * 114) / 1000;
+        return brightness > 128 ? 'rgba(0, 0, 0, 1)' : 'rgba(255, 255, 255, 1)';
+    }
+}
 
 // AIジャマー機能（Texture Jammer Mode）
 // じぴちゃん推奨: source-atopを使って「文字の中だけ」に高速にノイズを注入する
@@ -533,31 +778,7 @@ function renderWatermark() {
 }
 
 
-// ... existing code ...
-integrationSlider.addEventListener('input', () => {
-    integrationValue.textContent = integrationSlider.value;
-    renderWatermark();
-});
-
-// ビネット設定
-const vignetteBtns = document.querySelectorAll('[data-vignette-color]');
-vignetteBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
-        vignetteBtns.forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        currentVignetteColor = btn.dataset.vignetteColor;
-        renderWatermark();
-    });
-});
-
-vignetteSizeSlider.addEventListener('input', () => {
-    vignetteSizeValue.textContent = vignetteSizeSlider.value;
-    renderWatermark();
-});
-
-// ノイズ保護チェックボックス
-// ... existing code ...
-
+// AIジャマー機能（Texture Jammer Mode）
 // ビネット（周辺減光/増光）を描画
 // v15-Fix: 罠ノイズが画面全体を覆って文字を消してしまう不具合を修正
 // オフスクリーンキャンバスを使って、ノイズをビネットの形（四隅）だけにマスクする
