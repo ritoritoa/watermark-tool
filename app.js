@@ -221,9 +221,6 @@ function setupControls() {
         spacingValue.textContent = spacingSlider.value;
         renderWatermark();
     });
-
-    // ダウンロードボタン
-    downloadBtn.addEventListener('click', downloadImage);
 }
 
 function setupColorButtons() {

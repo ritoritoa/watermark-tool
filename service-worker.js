@@ -1,4 +1,4 @@
-const CACHE_NAME = 'watermark-tool-v27-restorefunctions';
+const CACHE_NAME = 'watermark-tool-v28-fixdownload';
 const ASSETS = [
     './',
     './index.html',
