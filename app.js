@@ -281,7 +281,11 @@ function setupModeButtons() {
             if (currentMode === 'image') {
                 textWatermarkSection.style.display = 'none';
                 imageWatermarkSection.style.display = 'block';
+            } else if (currentMode === 'composite') {
+                textWatermarkSection.style.display = 'block';
+                imageWatermarkSection.style.display = 'block';
             } else {
+                // text mode
                 textWatermarkSection.style.display = 'block';
                 imageWatermarkSection.style.display = 'none';
             }
@@ -701,10 +705,11 @@ function renderWatermark() {
     const jitterStrength = typeof jitterSlider !== 'undefined' && jitterSlider ? parseInt(jitterSlider.value) : 0;
 
     // モードに応じてウォーターマークレイヤーに描画
-    if (currentMode === 'image' && watermarkImage) {
-        wmCtx.globalAlpha = 1.0;
-        renderImageWatermarkToLayer(wmCtx, spacing, scale, angle, jitterStrength);
-    } else {
+    const shouldRenderText = (currentMode === 'text' || currentMode === 'composite');
+    const shouldRenderImage = (currentMode === 'image' || currentMode === 'composite');
+
+    // === テキスト透かしの描画 ===
+    if (shouldRenderText) {
         // === 👻 Phantom Layer (亡霊レイヤー) 描画 ===
         // ユーザーの透かしの下に、AI除去耐性の高い「証拠用透かし」をこっそり描く
         // 特徴: デカい、薄い、角度ズレ、中抜き、ジッター強め
@@ -738,6 +743,14 @@ function renderWatermark() {
         // === 👤 User Layer (メイン透かし) 描画 ===
         wmCtx.globalAlpha = 1.0; // ユーザー設定の透明度は合成時にかかるので、ここは100%で描く
         renderTextWatermarkToLayer(wmCtx, spacing, scale, angle, jitterStrength);
+    }
+
+    // === 画像透かしの描画 ===
+    if (shouldRenderImage && watermarkImage) {
+        wmCtx.globalAlpha = 1.0;
+        // 複合モードの場合は、テキストの上に画像を重ねる形になる
+        // 混ざり方を調整したい場合はここで globalCompositeOperation を変える手もあるが、一旦 source-over で上書き
+        renderImageWatermarkToLayer(wmCtx, spacing, scale, angle, jitterStrength);
     }
 
     // 3. ウォーターマークレイヤー(=wmCanvas)に対してのみ、AIジャマー(RGBグリッチ)を適用

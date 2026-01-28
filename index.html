@@ -73,6 +73,7 @@
                         <div class="mode-options">
                             <button class="mode-btn active" data-mode="text">✏️ テキスト</button>
                             <button class="mode-btn" data-mode="image">🖼️ 画像</button>
+                            <button class="mode-btn" data-mode="composite">✨ テキスト+画像</button>
                         </div>
                     </div>
 
@@ -136,8 +137,10 @@
                                 <input type="range" id="dotSize" min="1" max="8" value="3">
                             </div>
                         </div>
+                    </div>
 
-                        <!-- 共通設定 -->
+                    <!-- 共通設定 (どのモードでも表示) -->
+                    <div id="commonControls">
                         <div class="control-group">
                             <label>合成モード（ブレンド）</label>
                             <div class="blend-options">
@@ -159,81 +162,76 @@
                         </div>
 
                         <div class="control-group">
+                            <label>仕上げエフェクト</label>
+                            <div class="effect-controls">
+                                <div class="sub-control">
+                                    <label>🔲 ビネット (四隅効果)</label>
+                                    <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
+                                        <button class="color-btn active" data-vignette-color="black"
+                                            style="flex: 1; padding: 4px; font-size: 0.8rem;">⚫ 黒 (通常)</button>
+                                        <button class="color-btn" data-vignette-color="white"
+                                            style="flex: 1; padding: 4px; font-size: 0.8rem;">⚪ 白 (暗い画像用)</button>
+                                    </div>
+                                    <label for="vignette">濃さ: <span id="vignetteValue">0</span>%</label>
+                                    <input type="range" id="vignette" min="0" max="150" value="0">
 
-                            <div class="control-group">
-                                <label>仕上げエフェクト</label>
-                                <div class="effect-controls">
-                                    <div class="sub-control">
-                                        <label>🔲 ビネット (四隅効果)</label>
-                                        <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
-                                            <button class="color-btn active" data-vignette-color="black"
-                                                style="flex: 1; padding: 4px; font-size: 0.8rem;">⚫ 黒 (通常)</button>
-                                            <button class="color-btn" data-vignette-color="white"
-                                                style="flex: 1; padding: 4px; font-size: 0.8rem;">⚪ 白 (暗い画像用)</button>
-                                        </div>
-                                        <label for="vignette">濃さ: <span id="vignetteValue">0</span>%</label>
-                                        <input type="range" id="vignette" min="0" max="150" value="0">
-
-                                        <label for="vignetteSize" style="margin-top: 0.5rem;">広がり (エリア): <span
-                                                id="vignetteSizeValue">50</span>%</label>
-                                        <input type="range" id="vignetteSize" min="10" max="100" value="50">
-                                    </div>
-                                    <div class="sub-control">
-                                        <label for="texture">📜 質感ノイズ: <span id="textureValue">0</span>%</label>
-                                        <input type="range" id="texture" min="0" max="80" value="0">
-                                    </div>
-                                    <div class="sub-control">
-                                        <label for="integration">🌫️ 文字のなじみ度: <span
-                                                id="integrationValue">0</span>%</label>
-                                        <input type="range" id="integration" min="0" max="100" value="0">
-                                    </div>
+                                    <label for="vignetteSize" style="margin-top: 0.5rem;">広がり (エリア): <span
+                                            id="vignetteSizeValue">50</span>%</label>
+                                    <input type="range" id="vignetteSize" min="10" max="100" value="50">
+                                </div>
+                                <div class="sub-control">
+                                    <label for="texture">📜 質感ノイズ: <span id="textureValue">0</span>%</label>
+                                    <input type="range" id="texture" min="0" max="80" value="0">
+                                </div>
+                                <div class="sub-control">
+                                    <label for="integration">🌫️ 文字のなじみ度: <span id="integrationValue">0</span>%</label>
+                                    <input type="range" id="integration" min="0" max="100" value="0">
                                 </div>
                             </div>
-
-                            <div class="control-group">
-                                <label for="jitter">🔀 ゆらぎ (Jitter): <span id="jitterValue">0</span>%</label>
-                                <input type="range" id="jitter" min="0" max="100" value="0">
-                            </div>
-
-                            <div class="control-group">
-                                <label for="spacing">間隔: <span id="spacingValue">150</span>px</label>
-                                <input type="range" id="spacing" min="50" max="300" value="150">
-                            </div>
-
-                            <div class="control-group">
-                                <label for="wmScale">ウォーターマークサイズ: <span id="wmScaleValue">100</span>%</label>
-                                <input type="range" id="wmScale" min="10" max="200" value="100">
-                            </div>
-
-                            <div class="control-group protection-section">
-                                <div class="protection-header">
-                                    <label class="protection-label">
-                                        <input type="checkbox" id="noiseProtection">
-                                        <span>🛡️ AIジャマー (除去を妨害)</span>
-                                    </label>
-                                    <div class="jammer-strength-control" id="jammerStrengthControl"
-                                        style="display: none;">
-                                        <label for="jammerStrength" style="font-size: 0.8rem;">強度: <span
-                                                id="jammerStrengthValue">30</span></label>
-                                        <input type="range" id="jammerStrength" min="10" max="100" value="30">
-                                    </div>
-                                </div>
-                                <p class="protection-desc">不規則な色ズレ（カオス攻撃）を埋め込みます。AIの予測を混乱させ、除去跡を汚くします。</p>
-                            </div>
-
-                            <div class="control-group protection-section">
-                                <label class="protection-label">
-                                    <input type="checkbox" id="tamperDetection">
-                                    <span>🔍 改ざん検出モード</span>
-                                </label>
-                                <p class="protection-desc">出力画像に「検出用レイヤーを含む」表示を追加し、ファイル名に _detect を付与します。</p>
-                            </div>
-
-                            <button class="download-btn" id="downloadBtn">
-                                💾 ダウンロード (PNG)
-                            </button>
                         </div>
-                    </div><!-- end control-panel -->
+
+                        <div class="control-group">
+                            <label for="jitter">🔀 ゆらぎ (Jitter): <span id="jitterValue">0</span>%</label>
+                            <input type="range" id="jitter" min="0" max="100" value="0">
+                        </div>
+
+                        <div class="control-group">
+                            <label for="spacing">間隔: <span id="spacingValue">150</span>px</label>
+                            <input type="range" id="spacing" min="50" max="300" value="150">
+                        </div>
+
+                        <div class="control-group">
+                            <label for="wmScale">ウォーターマークサイズ: <span id="wmScaleValue">100</span>%</label>
+                            <input type="range" id="wmScale" min="10" max="200" value="100">
+                        </div>
+
+                        <div class="control-group protection-section">
+                            <div class="protection-header">
+                                <label class="protection-label">
+                                    <input type="checkbox" id="noiseProtection">
+                                    <span>🛡️ AIジャマー (除去を妨害)</span>
+                                </label>
+                                <div class="jammer-strength-control" id="jammerStrengthControl" style="display: none;">
+                                    <label for="jammerStrength" style="font-size: 0.8rem;">強度: <span
+                                            id="jammerStrengthValue">30</span></label>
+                                    <input type="range" id="jammerStrength" min="10" max="100" value="30">
+                                </div>
+                            </div>
+                            <p class="protection-desc">不規則な色ズレ（カオス攻撃）を埋め込みます。AIの予測を混乱させ、除去跡を汚くします。</p>
+                        </div>
+
+                        <div class="control-group protection-section">
+                            <label class="protection-label">
+                                <input type="checkbox" id="tamperDetection">
+                                <span>🔍 改ざん検出モード</span>
+                            </label>
+                            <p class="protection-desc">出力画像に「検出用レイヤーを含む」表示を追加し、ファイル名に _detect を付与します。</p>
+                        </div>
+
+                        <button class="download-btn" id="downloadBtn">
+                            💾 ダウンロード (PNG)
+                        </button>
+                    </div><!-- end commonControls -->
                 </div><!-- end mainSection -->
 
                 <!-- Diff比較セクション -->
