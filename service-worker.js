@@ -1,4 +1,4 @@
-const CACHE_NAME = 'watermark-tool-v29-composite';
+const CACHE_NAME = 'watermark-tool-v30b-hints';
 const ASSETS = [
     './',
     './index.html',

@@ -54,6 +54,20 @@ const vignetteValue = document.getElementById('vignetteValue');
 const textureValue = document.getElementById('textureValue');
 const integrationValue = document.getElementById('integrationValue');
 
+// 三層ノイズ保護 DOM要素
+const threeLayerNoiseCheckbox = document.getElementById('threeLayerNoise');
+const noiseControls = document.getElementById('noiseControls');
+const lowFreqNoiseSlider = document.getElementById('lowFreqNoise');
+const lowFreqNoiseValue = document.getElementById('lowFreqNoiseValue');
+const midFreqAngleSlider = document.getElementById('midFreqAngle');
+const midFreqAngleValue = document.getElementById('midFreqAngleValue');
+const midFreqStrengthSlider = document.getElementById('midFreqStrength');
+const midFreqStrengthValue = document.getElementById('midFreqStrengthValue');
+const highFreqNoiseSlider = document.getElementById('highFreqNoise');
+const highFreqNoiseValue = document.getElementById('highFreqNoiseValue');
+const noiseCorrelationSlider = document.getElementById('noiseCorrelation');
+const noiseCorrelationValue = document.getElementById('noiseCorrelationValue');
+
 // Diff Tool & Tabs
 const tabBtns = document.querySelectorAll('.tab-btn');
 const mainSection = document.getElementById('mainSection');
@@ -358,6 +372,54 @@ function setupEffectControls() {
         vignetteSizeValue.textContent = vignetteSizeSlider.value;
         renderWatermark();
     });
+
+    // ===== 三層ノイズ保護 =====
+    if (threeLayerNoiseCheckbox && noiseControls) {
+        threeLayerNoiseCheckbox.addEventListener('change', () => {
+            noiseControls.style.display = threeLayerNoiseCheckbox.checked ? 'block' : 'none';
+            renderWatermark();
+        });
+    }
+
+    // 低周波ノイズスライダー
+    if (lowFreqNoiseSlider) {
+        lowFreqNoiseSlider.addEventListener('input', () => {
+            lowFreqNoiseValue.textContent = lowFreqNoiseSlider.value;
+            renderWatermark();
+        });
+    }
+
+    // 中域ノイズ（角度）
+    if (midFreqAngleSlider) {
+        midFreqAngleSlider.addEventListener('input', () => {
+            midFreqAngleValue.textContent = midFreqAngleSlider.value;
+            renderWatermark();
+        });
+    }
+
+    // 中域ノイズ（強度）
+    if (midFreqStrengthSlider) {
+        midFreqStrengthSlider.addEventListener('input', () => {
+            midFreqStrengthValue.textContent = midFreqStrengthSlider.value;
+            renderWatermark();
+        });
+    }
+
+    // 高周波ノイズスライダー
+    if (highFreqNoiseSlider) {
+        highFreqNoiseSlider.addEventListener('input', () => {
+            highFreqNoiseValue.textContent = highFreqNoiseSlider.value;
+            renderWatermark();
+        });
+    }
+
+    // 相関度スライダー
+    if (noiseCorrelationSlider) {
+        noiseCorrelationSlider.addEventListener('input', () => {
+            noiseCorrelationValue.textContent = noiseCorrelationSlider.value;
+            renderWatermark();
+        });
+    }
 }
 
 // =====================================================
@@ -785,6 +847,17 @@ function renderWatermark() {
         const alphaScale = integrationStrength > 0 ? (0.5 + integrationStrength / 200) : 1.0;
         renderTexture(textureStrength, alphaScale);
     }
+
+    // 6. 三層ノイズ保護（最終工程・ダウンロード前に適用）
+    if (threeLayerNoiseCheckbox && threeLayerNoiseCheckbox.checked) {
+        applyThreeLayerNoise(ctx, canvas.width, canvas.height, {
+            lowFreq: lowFreqNoiseSlider ? parseInt(lowFreqNoiseSlider.value) : 30,
+            midAngle: midFreqAngleSlider ? parseInt(midFreqAngleSlider.value) : 45,
+            midStrength: midFreqStrengthSlider ? parseInt(midFreqStrengthSlider.value) : 40,
+            highFreq: highFreqNoiseSlider ? parseInt(highFreqNoiseSlider.value) : 50,
+            correlation: noiseCorrelationSlider ? parseInt(noiseCorrelationSlider.value) : 70
+        });
+    }
 }
 
 
@@ -977,6 +1050,125 @@ function stampDetectionLabel(ctx, w, h) {
     // 右下に配置
     ctx.fillText(`検出用レイヤーを含む (${BUILD_ID})`, w - 12, h - 10);
     ctx.restore();
+}
+
+// =====================================================
+// 三層ノイズ保護システム (Three-Layer Correlated Noise)
+// =====================================================
+
+/**
+ * シード付き擬似乱数生成器（再現可能なノイズ生成用）
+ */
+function seededRandom(seed) {
+    const m = 0x80000000;
+    const a = 1103515245;
+    const c = 12345;
+    let state = seed;
+    return function () {
+        state = (a * state + c) % m;
+        return state / (m - 1);
+    };
+}
+
+/**
+ * 低周波ノイズ生成（Perlin風の滑らかな明暗パターン）
+ */
+function generateLowFreqNoise(x, y, scale) {
+    const gridX = Math.floor(x / scale);
+    const gridY = Math.floor(y / scale);
+    const fracX = (x / scale) - gridX;
+    const fracY = (y / scale) - gridY;
+
+    const hash = (gx, gy) => {
+        const seed = (gx * 374761393 + gy * 668265263) ^ 1013904223;
+        return ((seed * seed * seed * 60493) >>> 0) / 4294967296;
+    };
+
+    const v00 = hash(gridX, gridY);
+    const v10 = hash(gridX + 1, gridY);
+    const v01 = hash(gridX, gridY + 1);
+    const v11 = hash(gridX + 1, gridY + 1);
+
+    const smoothX = fracX * fracX * (3 - 2 * fracX);
+    const smoothY = fracY * fracY * (3 - 2 * fracY);
+
+    const top = v00 + (v10 - v00) * smoothX;
+    const bottom = v01 + (v11 - v01) * smoothX;
+
+    return top + (bottom - top) * smoothY;
+}
+
+/**
+ * 中域ノイズ生成（方向性を持つ線状ノイズ）
+ */
+function generateMidFreqNoise(x, y, angle, strength, lowFreqValue, correlation) {
+    const rad = (angle * Math.PI) / 180;
+    const rotatedY = x * Math.sin(rad) + y * Math.cos(rad);
+    const linePattern = (Math.sin(rotatedY * 0.1) + 1) / 2;
+    const correlated = linePattern * (1 - correlation) +
+        (linePattern * lowFreqValue * 2) * correlation;
+    const noise = (Math.sin(x * 0.3 + y * 0.7) + 1) / 2 * 0.3;
+    return Math.max(0, Math.min(1, correlated * strength / 100 + noise * (strength / 200)));
+}
+
+/**
+ * 高周波ノイズ生成（細かい粒子・線）
+ */
+function generateHighFreqNoise(x, y, density, lowFreqValue, midFreqValue, correlation) {
+    const hash = ((x * 374761393 + y * 668265263 + 1013904223) >>> 0) / 4294967296;
+    const correlationFactor = (lowFreqValue * 0.5 + midFreqValue * 0.5);
+    const adjustedDensity = density * (1 - correlation * 0.5) +
+        density * correlation * correlationFactor * 1.5;
+    const threshold = 1 - (adjustedDensity / 100);
+    if (hash > threshold) {
+        return hash;
+    }
+    return 0;
+}
+
+/**
+ * 三層相関ノイズを画像に適用
+ */
+function applyThreeLayerNoise(ctx, width, height, params) {
+    const {
+        lowFreq = 30,
+        midAngle = 45,
+        midStrength = 40,
+        highFreq = 50,
+        correlation = 70
+    } = params;
+
+    if (lowFreq === 0 && midStrength === 0 && highFreq === 0) return;
+
+    const imageData = ctx.getImageData(0, 0, width, height);
+    const data = imageData.data;
+    const normalizedCorrelation = correlation / 100;
+    const lowFreqScale = 80;
+
+    for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+            const i = (y * width + x) * 4;
+
+            const lowNoise = generateLowFreqNoise(x, y, lowFreqScale);
+            const midNoise = generateMidFreqNoise(x, y, midAngle, midStrength, lowNoise, normalizedCorrelation);
+            const highNoise = generateHighFreqNoise(x, y, highFreq, lowNoise, midNoise, normalizedCorrelation);
+
+            const lowContrib = (lowNoise - 0.5) * (lowFreq / 100) * 30;
+            const midContrib = (midNoise - 0.5) * 20;
+            const highContrib = highNoise * 15;
+
+            // RGB各チャンネルに微妙に異なるオフセットを適用（相関ノイズの鍵）
+            const rOffset = lowContrib + midContrib + highContrib;
+            const gOffset = lowContrib * 0.9 + midContrib * 1.1 + highContrib * 0.95;
+            const bOffset = lowContrib * 1.1 + midContrib * 0.9 + highContrib * 1.05;
+
+            data[i] = Math.max(0, Math.min(255, data[i] + rOffset));
+            data[i + 1] = Math.max(0, Math.min(255, data[i + 1] + gOffset));
+            data[i + 2] = Math.max(0, Math.min(255, data[i + 2] + bOffset));
+        }
+    }
+
+    ctx.putImageData(imageData, 0, 0);
 }
 
 // 罠（Trap）用ノイズパターン生成: 一見ただの暗闇だが、AI殺しのRGBノイズを含ませる

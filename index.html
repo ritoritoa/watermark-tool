@@ -220,6 +220,49 @@
                             <p class="protection-desc">不規則な色ズレ（カオス攻撃）を埋め込みます。AIの予測を混乱させ、除去跡を汚くします。</p>
                         </div>
 
+                        <!-- 三層ノイズ保護システム -->
+                        <div class="control-group protection-section" id="threeLayerNoiseSection">
+                            <div class="protection-header">
+                                <label class="protection-label">
+                                    <input type="checkbox" id="threeLayerNoise">
+                                    <span>🛡️ 三層ノイズ保護 (AI除去耐性)</span>
+                                </label>
+                            </div>
+                            <p class="protection-desc">低周波・中域・高周波の相関ノイズを埋め込み、除去しようとすると画像が破壊される構造を作ります。</p>
+
+                            <div class="noise-controls" id="noiseControls" style="display: none;">
+                                <div class="noise-slider-group">
+                                    <label for="lowFreqNoise">🌊 低周波 (明暗うねり): <span
+                                            id="lowFreqNoiseValue">30</span>%</label>
+                                    <input type="range" id="lowFreqNoise" min="0" max="100" value="30">
+                                    <p class="slider-hint">0=なし → 100=うねり強い</p>
+                                </div>
+                                <div class="noise-slider-group">
+                                    <label for="midFreqAngle">〰️ 中域 角度: <span id="midFreqAngleValue">45</span>°</label>
+                                    <input type="range" id="midFreqAngle" min="-90" max="90" value="45">
+                                    <p class="slider-hint">テクスチャの傾き方向</p>
+                                </div>
+                                <div class="noise-slider-group">
+                                    <label for="midFreqStrength">〰️ 中域 強度: <span
+                                            id="midFreqStrengthValue">40</span>%</label>
+                                    <input type="range" id="midFreqStrength" min="0" max="100" value="40">
+                                    <p class="slider-hint">0=なし → 100=テクスチャ濃い</p>
+                                </div>
+                                <div class="noise-slider-group">
+                                    <label for="highFreqNoise">✨ 高周波 (細かい粒子): <span
+                                            id="highFreqNoiseValue">50</span>%</label>
+                                    <input type="range" id="highFreqNoise" min="0" max="100" value="50">
+                                    <p class="slider-hint">0=なし → 100=粒子たくさん</p>
+                                </div>
+                                <div class="noise-slider-group correlation-slider">
+                                    <label for="noiseCorrelation">🔗 層間相関度: <span
+                                            id="noiseCorrelationValue">70</span>%</label>
+                                    <input type="range" id="noiseCorrelation" min="0" max="100" value="70">
+                                    <p class="slider-hint">0=各層バラバラ → 100=強く連動（AI除去に強い）</p>
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="control-group protection-section">
                             <label class="protection-label">
                                 <input type="checkbox" id="tamperDetection">
