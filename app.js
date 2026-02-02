@@ -42,6 +42,18 @@ const textureSlider = document.getElementById('texture');
 const integrationSlider = document.getElementById('integration');
 const jitterSlider = document.getElementById('jitter');
 
+// 画像専用スライダー
+const imgOpacitySlider = document.getElementById('imgOpacity');
+const imgOpacityValue = document.getElementById('imgOpacityValue');
+const imgAngleSlider = document.getElementById('imgAngle');
+const imgAngleValue = document.getElementById('imgAngleValue');
+const imgSpacingSlider = document.getElementById('imgSpacing');
+const imgSpacingValue = document.getElementById('imgSpacingValue');
+const imgJitterSlider = document.getElementById('imgJitter');
+const imgJitterValue = document.getElementById('imgJitterValue');
+const imgScaleSlider = document.getElementById('imgScale');
+const imgScaleValue = document.getElementById('imgScaleValue');
+
 // 値表示要素
 const opacityValue = document.getElementById('opacityValue');
 const fontSizeValue = document.getElementById('fontSizeValue');
@@ -144,6 +156,13 @@ function saveSettings() {
         integration: integrationSlider?.value,
         jitter: jitterSlider?.value,
 
+        // 画像専用設定
+        imgOpacity: imgOpacitySlider?.value,
+        imgAngle: imgAngleSlider?.value,
+        imgSpacing: imgSpacingSlider?.value,
+        imgJitter: imgJitterSlider?.value,
+        imgScale: imgScaleSlider?.value,
+
         // 三層ノイズ
         threeLayerNoise: threeLayerNoiseCheckbox?.checked,
         lowFreqNoise: lowFreqNoiseSlider?.value,
@@ -196,6 +215,13 @@ function loadSettings() {
         restoreSlider(textureSlider, textureValue, settings.texture);
         restoreSlider(integrationSlider, integrationValue, settings.integration);
         restoreSlider(jitterSlider, jitterValue, settings.jitter);
+
+        // 画像専用設定
+        restoreSlider(imgOpacitySlider, imgOpacityValue, settings.imgOpacity);
+        restoreSlider(imgAngleSlider, imgAngleValue, settings.imgAngle);
+        restoreSlider(imgSpacingSlider, imgSpacingValue, settings.imgSpacing);
+        restoreSlider(imgJitterSlider, imgJitterValue, settings.imgJitter);
+        restoreSlider(imgScaleSlider, imgScaleValue, settings.imgScale);
 
         // 三層ノイズ
         restoreSlider(lowFreqNoiseSlider, lowFreqNoiseValue, settings.lowFreqNoise);
@@ -642,12 +668,11 @@ function renderTextWatermarkToLayer(targetCtx, spacing, scale, angle, jitterStre
     const text = watermarkText.value || '© Sample';
 
     // configがある場合はそれを使う（Phantom Layer用）、ない場合は通常設定
-    const fontSize = config ? config.fontSize : parseInt(fontSizeSlider.value) * scale;
+    const baseFontSize = config ? config.fontSize : parseInt(fontSizeSlider.value) * scale;
     const style = config ? config.style : currentStyle;
     const colorMode = config ? config.colorMode : currentColorMode;
 
     targetCtx.save();
-    targetCtx.font = getFontString(fontSize);
     targetCtx.textAlign = 'center';
     targetCtx.textBaseline = 'middle';
 
@@ -661,19 +686,29 @@ function renderTextWatermarkToLayer(targetCtx, spacing, scale, angle, jitterStre
     const endX = canvas.width * 2;
     const endY = canvas.height * 2;
 
+    // ジッター強度の正規化 (0-100 → 0-1)
+    const jitterNorm = jitterStrength / 100;
+
     // スタイルに応じて描画
     if (style === 'halftone') {
         const dotSize = parseInt(dotSizeSlider.value);
-        renderHalftoneText(targetCtx, text, fontSize, startX, startY, endX, endY, spacing, spacing, dotSize, jitterStrength);
+        renderHalftoneText(targetCtx, text, baseFontSize, startX, startY, endX, endY, spacing, spacing, dotSize, jitterStrength);
     } else if (style === 'analog') {
-        renderAnalogText(targetCtx, text, fontSize, startX, startY, endX, endY, spacing, spacing, jitterStrength);
+        renderAnalogText(targetCtx, text, baseFontSize, startX, startY, endX, endY, spacing, spacing, jitterStrength);
     } else {
-        // 通常 or 中抜き
+        // 通常 or 中抜き（強化版ジッター）
         for (let y = startY; y < endY; y += spacing) {
             for (let x = startX; x < endX; x += spacing) {
-                // ジッター (揺らぎ)
-                const jx = jitterStrength > 0 ? (Math.random() - 0.5) * jitterStrength : 0;
-                const jy = jitterStrength > 0 ? (Math.random() - 0.5) * jitterStrength : 0;
+                // === 位置ジッター（2倍の効果） ===
+                const jx = jitterStrength > 0 ? (Math.random() - 0.5) * jitterStrength * 2 : 0;
+                const jy = jitterStrength > 0 ? (Math.random() - 0.5) * jitterStrength * 2 : 0;
+
+                // === 回転ジッター（±15度） ===
+                const rotationJitter = jitterStrength > 0 ? (Math.random() - 0.5) * jitterNorm * 30 : 0;
+
+                // === サイズジッター（±20%） ===
+                const sizeJitter = jitterStrength > 0 ? 1 + (Math.random() - 0.5) * jitterNorm * 0.4 : 1;
+                const fontSize = baseFontSize * sizeJitter;
 
                 const finalX = x + jx;
                 const finalY = y + jy;
@@ -681,16 +716,32 @@ function renderTextWatermarkToLayer(targetCtx, spacing, scale, angle, jitterStre
                 // テキスト色を決定
                 const color = config && config.color ? config.color : getTextColor(finalX, finalY);
 
+                // 個別の回転を適用
+                targetCtx.save();
+                targetCtx.translate(finalX, finalY);
+                targetCtx.rotate((rotationJitter * Math.PI) / 180);
+                targetCtx.font = getFontString(fontSize);
+
                 if (style === 'outline') {
                     // 中抜きスタイル
                     targetCtx.strokeStyle = color;
                     targetCtx.lineWidth = 2;
-                    targetCtx.strokeText(text, finalX, finalY);
+                    targetCtx.strokeText(text, 0, 0);
                 } else {
-                    // 通常スタイル
+                    // 通常スタイル + 自動コントラスト縁取り
+                    // まず対比色で太めの縁取りを描画（視認性向上）
+                    const isLightColor = color.includes('255') || color === 'white' || colorMode === 'white';
+                    targetCtx.strokeStyle = isLightColor ? 'rgba(0, 0, 0, 0.3)' : 'rgba(255, 255, 255, 0.3)';
+                    targetCtx.lineWidth = fontSize * 0.08; // フォントサイズの8%
+                    targetCtx.lineJoin = 'round';
+                    targetCtx.strokeText(text, 0, 0);
+
+                    // その上にメインの文字を描画
                     targetCtx.fillStyle = color;
-                    targetCtx.fillText(text, finalX, finalY);
+                    targetCtx.fillText(text, 0, 0);
                 }
+
+                targetCtx.restore();
             }
         }
     }
@@ -898,6 +949,38 @@ function setupWatermarkImageUpload() {
             reader.readAsDataURL(file);
         }
     });
+
+    // 画像専用スライダーのイベントハンドラー
+    if (imgOpacitySlider) {
+        imgOpacitySlider.addEventListener('input', () => {
+            imgOpacityValue.textContent = imgOpacitySlider.value;
+            renderWatermark();
+        });
+    }
+    if (imgAngleSlider) {
+        imgAngleSlider.addEventListener('input', () => {
+            imgAngleValue.textContent = imgAngleSlider.value;
+            renderWatermark();
+        });
+    }
+    if (imgSpacingSlider) {
+        imgSpacingSlider.addEventListener('input', () => {
+            imgSpacingValue.textContent = imgSpacingSlider.value;
+            renderWatermark();
+        });
+    }
+    if (imgJitterSlider) {
+        imgJitterSlider.addEventListener('input', () => {
+            imgJitterValue.textContent = imgJitterSlider.value;
+            renderWatermark();
+        });
+    }
+    if (imgScaleSlider) {
+        imgScaleSlider.addEventListener('input', () => {
+            imgScaleValue.textContent = imgScaleSlider.value;
+            renderWatermark();
+        });
+    }
 }
 
 // フォント文字列を取得
@@ -949,63 +1032,88 @@ function renderWatermark() {
     const shouldRenderText = (currentMode === 'text' || currentMode === 'composite');
     const shouldRenderImage = (currentMode === 'image' || currentMode === 'composite');
 
-    // === テキスト透かしの描画 ===
+    // === テキスト透かしの描画（テキスト専用キャンバス） ===
+    const textCanvas = document.createElement('canvas');
+    textCanvas.width = canvas.width;
+    textCanvas.height = canvas.height;
+    const textCtx = textCanvas.getContext('2d');
+
     if (shouldRenderText) {
         // === 👻 Phantom Layer (亡霊レイヤー) 描画 ===
-        // ユーザーの透かしの下に、AI除去耐性の高い「証拠用透かし」をこっそり描く
-        // 特徴: デカい、薄い、角度ズレ、中抜き、ジッター強め
+        textCtx.save();
+        textCtx.globalAlpha = 0.05;
 
-        wmCtx.save();
-        wmCtx.globalAlpha = 0.05; // 5% (少し強化)
-
-        // 亡霊の設定（最強の耐久設定を固定で適用）
         const phantomConfig = {
-            style: 'outline',       // 輪郭だけ残す（JPEG耐性最強）
-            colorMode: 'white',     // 白固定（または自動）
+            style: 'outline',
+            colorMode: 'white',
             color: 'rgba(255, 255, 255, 1)',
-            fontSize: 180           // サイズ固定（ユーザー設定無視でデカく！）
+            fontSize: 180
         };
 
-        // ユーザー設定完全無視！固定の最強設定で描く
-        // 間隔: 1000px (広め固定)
-        // サイズ: 180px (configで指定済み)
-        // 角度: ユーザー + 5度 (ズラす)
-        // ジッター: 70 (じぴちゃん推奨のバラけ具合)
         renderTextWatermarkToLayer(
-            wmCtx,
-            1000,               // 固定間隔
-            1,                  // scaleはfontSize固定なので1でOK
-            angle + 5,          // 角度ズレ
-            70,                 // ジッター 70 (強め)
+            textCtx,
+            1000,
+            1,
+            angle + 5,
+            70,
             phantomConfig
         );
-        wmCtx.restore();
+        textCtx.restore();
 
         // === 👤 User Layer (メイン透かし) 描画 ===
-        wmCtx.globalAlpha = 1.0; // ユーザー設定の透明度は合成時にかかるので、ここは100%で描く
-        renderTextWatermarkToLayer(wmCtx, spacing, scale, angle, jitterStrength);
+        textCtx.globalAlpha = 1.0;
+        renderTextWatermarkToLayer(textCtx, spacing, scale, angle, jitterStrength);
+
+        // AIジャマー（テキストレイヤーに適用）
+        if (noiseProtection.checked) {
+            addNoiseProtectionToLayer(textCtx, textCanvas.width, textCanvas.height);
+        }
     }
 
-    // === 画像透かしの描画 ===
+    // === 画像透かしの描画（画像専用キャンバス） ===
+    const imgCanvas = document.createElement('canvas');
+    imgCanvas.width = canvas.width;
+    imgCanvas.height = canvas.height;
+    const imgCtx = imgCanvas.getContext('2d');
+
     if (shouldRenderImage && watermarkImage) {
-        wmCtx.globalAlpha = 1.0;
-        // 複合モードの場合は、テキストの上に画像を重ねる形になる
-        // 混ざり方を調整したい場合はここで globalCompositeOperation を変える手もあるが、一旦 source-over で上書き
-        renderImageWatermarkToLayer(wmCtx, spacing, scale, angle, jitterStrength);
+        const imgAngle = imgAngleSlider ? parseInt(imgAngleSlider.value) : angle;
+        const imgSpacing = imgSpacingSlider ? parseInt(imgSpacingSlider.value) : spacing;
+        const imgScale = imgScaleSlider ? (parseInt(imgScaleSlider.value) / 100) : scale;
+        const imgJitter = imgJitterSlider ? parseInt(imgJitterSlider.value) : jitterStrength;
+
+        imgCtx.globalAlpha = 1.0;
+        renderImageWatermarkToLayer(imgCtx, imgSpacing, imgScale, imgAngle, imgJitter);
     }
 
-    // 3. ウォーターマークレイヤー(=wmCanvas)に対してのみ、AIジャマー(RGBグリッチ)を適用
-    // これにより、元画像は綺麗なまま、文字だけを破壊できる
-    if (noiseProtection.checked) {
-        // 関数名変更: addNoiseProtection -> addNoiseProtectionToLayer
-        addNoiseProtectionToLayer(wmCtx, wmCanvas.width, wmCanvas.height);
-    }
-
-    // 4. ウォーターマークレイヤーを元画像に合成
-    const opacity = parseInt(opacitySlider.value) / 100;
+    // 4. それぞれのレイヤーを個別の透明度で合成
     ctx.globalCompositeOperation = currentBlendMode;
-    ctx.globalAlpha = opacity;
-    ctx.drawImage(wmCanvas, 0, 0);
+
+    // テキストレイヤーを合成（テキスト透明度、100%超は重ね描き）
+    if (shouldRenderText) {
+        const rawOpacity = parseInt(opacitySlider.value);
+
+        if (rawOpacity > 100) {
+            // 100%超: まず100%で1回描画、残りの分をもう1回描画
+            ctx.globalAlpha = 1.0;
+            ctx.drawImage(textCanvas, 0, 0);
+
+            // 追加描画（50% = もう1回100%、100%超えた分を描画）
+            const extraOpacity = (rawOpacity - 100) / 100;
+            ctx.globalAlpha = extraOpacity;
+            ctx.drawImage(textCanvas, 0, 0);
+        } else {
+            ctx.globalAlpha = rawOpacity / 100;
+            ctx.drawImage(textCanvas, 0, 0);
+        }
+    }
+
+    // 画像レイヤーを合成（画像専用透明度）
+    if (shouldRenderImage && watermarkImage) {
+        const imgOpacity = imgOpacitySlider ? parseInt(imgOpacitySlider.value) / 100 : 0.7;
+        ctx.globalAlpha = imgOpacity;
+        ctx.drawImage(imgCanvas, 0, 0);
+    }
 
     // 合成設定をリセット
     ctx.globalAlpha = 1;

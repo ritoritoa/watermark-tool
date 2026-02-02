@@ -86,6 +86,30 @@
                             <input type="file" id="watermarkImageInput" accept="image/png" hidden>
                         </label>
                         <div id="watermarkImagePreview" class="watermark-image-preview"></div>
+
+                        <!-- 画像専用スライダー -->
+                        <div class="image-specific-controls">
+                            <div class="control-group">
+                                <label for="imgOpacity">透明度: <span id="imgOpacityValue">70</span>%</label>
+                                <input type="range" id="imgOpacity" min="10" max="100" value="70">
+                            </div>
+                            <div class="control-group">
+                                <label for="imgAngle">角度: <span id="imgAngleValue">-30</span>°</label>
+                                <input type="range" id="imgAngle" min="-90" max="90" value="-30">
+                            </div>
+                            <div class="control-group">
+                                <label for="imgSpacing">間隔: <span id="imgSpacingValue">150</span>px</label>
+                                <input type="range" id="imgSpacing" min="50" max="300" value="150">
+                            </div>
+                            <div class="control-group">
+                                <label for="imgJitter">ゆらぎ: <span id="imgJitterValue">0</span></label>
+                                <input type="range" id="imgJitter" min="0" max="100" value="0">
+                            </div>
+                            <div class="control-group">
+                                <label for="imgScale">サイズ: <span id="imgScaleValue">100</span>%</label>
+                                <input type="range" id="imgScale" min="10" max="200" value="100">
+                            </div>
+                        </div>
                     </div>
 
                     <!-- テキストウォーターマーク設定 -->
@@ -153,7 +177,8 @@
 
                         <div class="control-group">
                             <label for="opacity">透明度: <span id="opacityValue">30</span>%</label>
-                            <input type="range" id="opacity" min="5" max="100" value="30">
+                            <input type="range" id="opacity" min="5" max="200" value="30">
+                            <p class="slider-hint">100%超で重ね描き（より濃く）</p>
                         </div>
 
                         <div class="control-group">
