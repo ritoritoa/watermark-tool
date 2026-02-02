@@ -115,6 +115,179 @@ function init() {
     setupBlendButtons();
     setupWatermarkImageUpload();
     setupEffectControls();
+
+    // 前回の設定を復元
+    loadSettings();
+}
+
+// =====================================================
+// 設定の保存・復元 (localStorage)
+// =====================================================
+
+const SETTINGS_KEY = 'watermark-tool-settings';
+
+function saveSettings() {
+    const settings = {
+        // テキスト
+        watermarkText: watermarkText?.value || '',
+
+        // スライダー値
+        opacity: opacitySlider?.value,
+        fontSize: fontSizeSlider?.value,
+        angle: angleSlider?.value,
+        spacing: spacingSlider?.value,
+        wmScale: wmScaleSlider?.value,
+        dotSize: dotSizeSlider?.value,
+        vignette: vignetteSlider?.value,
+        vignetteSize: vignetteSizeSlider?.value,
+        texture: textureSlider?.value,
+        integration: integrationSlider?.value,
+        jitter: jitterSlider?.value,
+
+        // 三層ノイズ
+        threeLayerNoise: threeLayerNoiseCheckbox?.checked,
+        lowFreqNoise: lowFreqNoiseSlider?.value,
+        midFreqAngle: midFreqAngleSlider?.value,
+        midFreqStrength: midFreqStrengthSlider?.value,
+        highFreqNoise: highFreqNoiseSlider?.value,
+        noiseCorrelation: noiseCorrelationSlider?.value,
+
+        // チェックボックス
+        noiseProtection: noiseProtection?.checked,
+        tamperDetection: detectionCheckbox?.checked,
+
+        // ボタン選択状態
+        colorMode: currentColorMode,
+        style: currentStyle,
+        font: currentFont,
+        mode: currentMode,
+        blendMode: currentBlendMode,
+        vignetteColor: currentVignetteColor
+    };
+
+    try {
+        localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+    } catch (e) {
+        console.warn('設定の保存に失敗:', e);
+    }
+}
+
+function loadSettings() {
+    try {
+        const saved = localStorage.getItem(SETTINGS_KEY);
+        if (!saved) return;
+
+        const settings = JSON.parse(saved);
+
+        // テキスト
+        if (settings.watermarkText && watermarkText) {
+            watermarkText.value = settings.watermarkText;
+        }
+
+        // スライダー復元（値と表示を両方更新）
+        restoreSlider(opacitySlider, opacityValue, settings.opacity);
+        restoreSlider(fontSizeSlider, fontSizeValue, settings.fontSize);
+        restoreSlider(angleSlider, angleValue, settings.angle);
+        restoreSlider(spacingSlider, spacingValue, settings.spacing);
+        restoreSlider(wmScaleSlider, wmScaleValue, settings.wmScale);
+        restoreSlider(dotSizeSlider, dotSizeValue, settings.dotSize);
+        restoreSlider(vignetteSlider, vignetteValue, settings.vignette);
+        restoreSlider(vignetteSizeSlider, vignetteSizeValue, settings.vignetteSize);
+        restoreSlider(textureSlider, textureValue, settings.texture);
+        restoreSlider(integrationSlider, integrationValue, settings.integration);
+        restoreSlider(jitterSlider, jitterValue, settings.jitter);
+
+        // 三層ノイズ
+        restoreSlider(lowFreqNoiseSlider, lowFreqNoiseValue, settings.lowFreqNoise);
+        restoreSlider(midFreqAngleSlider, midFreqAngleValue, settings.midFreqAngle);
+        restoreSlider(midFreqStrengthSlider, midFreqStrengthValue, settings.midFreqStrength);
+        restoreSlider(highFreqNoiseSlider, highFreqNoiseValue, settings.highFreqNoise);
+        restoreSlider(noiseCorrelationSlider, noiseCorrelationValue, settings.noiseCorrelation);
+
+        // チェックボックス
+        if (threeLayerNoiseCheckbox && settings.threeLayerNoise !== undefined) {
+            threeLayerNoiseCheckbox.checked = settings.threeLayerNoise;
+            if (noiseControls) {
+                noiseControls.style.display = settings.threeLayerNoise ? 'block' : 'none';
+            }
+        }
+        if (noiseProtection && settings.noiseProtection !== undefined) {
+            noiseProtection.checked = settings.noiseProtection;
+            const jammerControl = document.getElementById('jammerStrengthControl');
+            if (jammerControl) {
+                jammerControl.style.display = settings.noiseProtection ? 'flex' : 'none';
+            }
+        }
+        if (detectionCheckbox && settings.tamperDetection !== undefined) {
+            detectionCheckbox.checked = settings.tamperDetection;
+        }
+
+        // ボタン選択状態
+        if (settings.colorMode) {
+            currentColorMode = settings.colorMode;
+            colorBtns.forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.color === settings.colorMode);
+            });
+        }
+        if (settings.style) {
+            currentStyle = settings.style;
+            styleBtns.forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.style === settings.style);
+            });
+            if (halftoneOptions) {
+                halftoneOptions.style.display = settings.style === 'halftone' ? 'block' : 'none';
+            }
+        }
+        if (settings.font) {
+            currentFont = settings.font;
+            fontBtns.forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.font === settings.font);
+            });
+        }
+        if (settings.mode) {
+            currentMode = settings.mode;
+            modeBtns.forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.mode === settings.mode);
+            });
+            // セクション表示切替
+            if (textWatermarkSection && imageWatermarkSection) {
+                if (settings.mode === 'text') {
+                    textWatermarkSection.style.display = 'block';
+                    imageWatermarkSection.style.display = 'none';
+                } else if (settings.mode === 'image') {
+                    textWatermarkSection.style.display = 'none';
+                    imageWatermarkSection.style.display = 'block';
+                } else if (settings.mode === 'composite') {
+                    textWatermarkSection.style.display = 'block';
+                    imageWatermarkSection.style.display = 'block';
+                }
+            }
+        }
+        if (settings.blendMode) {
+            currentBlendMode = settings.blendMode;
+            blendBtns.forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.blend === settings.blendMode);
+            });
+        }
+        if (settings.vignetteColor) {
+            currentVignetteColor = settings.vignetteColor;
+            const vignetteBtns = document.querySelectorAll('[data-vignette-color]');
+            vignetteBtns.forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.vignetteColor === settings.vignetteColor);
+            });
+        }
+
+        console.log('設定を復元しました');
+    } catch (e) {
+        console.warn('設定の復元に失敗:', e);
+    }
+}
+
+function restoreSlider(slider, display, value) {
+    if (slider && value !== undefined) {
+        slider.value = value;
+        if (display) display.textContent = value;
+    }
 }
 
 // =====================================================
@@ -212,8 +385,11 @@ function resetToDropZone() {
 // =====================================================
 
 function setupControls() {
-    // テキスト入力
-    watermarkText.addEventListener('input', renderWatermark);
+    // テキスト入力（画像なしでも設定保存する）
+    watermarkText.addEventListener('input', () => {
+        saveSettings();
+        renderWatermark();
+    });
 
     // スライダー
     opacitySlider.addEventListener('input', () => {
@@ -746,7 +922,10 @@ function getFontString(fontSize) {
 // =====================================================
 
 function renderWatermark() {
-    if (!originalImage) return;
+    if (!originalImage) {
+        saveSettings(); // 画像なくても設定は保存
+        return;
+    }
 
     // 1. ベースキャンバスの準備（元画像を描画）
     canvas.width = originalImage.width;
@@ -858,6 +1037,9 @@ function renderWatermark() {
             correlation: noiseCorrelationSlider ? parseInt(noiseCorrelationSlider.value) : 70
         });
     }
+
+    // 設定を自動保存
+    saveSettings();
 }
 
 
