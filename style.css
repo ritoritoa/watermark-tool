@@ -420,6 +420,29 @@ input[type="range"]::-webkit-slider-thumb:hover {
     border-color: transparent;
 }
 
+/* 画像専用合成モードボタン */
+.img-blend-btn {
+    flex: 1;
+    min-width: 45%;
+    padding: 0.5rem 0.25rem;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.img-blend-btn:hover {
+    background: rgba(108, 92, 231, 0.2);
+}
+
+.img-blend-btn.active {
+    background: var(--accent-gradient);
+    border-color: transparent;
+}
+
 /* 仕上げエフェクトコントロール */
 .effect-controls {
     display: flex;

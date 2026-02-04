@@ -109,6 +109,15 @@
                                 <label for="imgScale">サイズ: <span id="imgScaleValue">100</span>%</label>
                                 <input type="range" id="imgScale" min="10" max="200" value="100">
                             </div>
+                            <div class="control-group">
+                                <label>合成モード（画像用）</label>
+                                <div class="blend-options">
+                                    <button class="img-blend-btn active" data-img-blend="source-over">通常</button>
+                                    <button class="img-blend-btn" data-img-blend="overlay">馴染ませる</button>
+                                    <button class="img-blend-btn" data-img-blend="multiply">暗くする</button>
+                                    <button class="img-blend-btn" data-img-blend="screen">明るくする</button>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -294,6 +303,79 @@
                                 <span>🔍 改ざん検出モード</span>
                             </label>
                             <p class="protection-desc">出力画像に「検出用レイヤーを含む」表示を追加し、ファイル名に _detect を付与します。</p>
+                        </div>
+
+                        <!-- AI復元困難化フィルタ -->
+                        <div class="control-group protection-section" id="irrecoverableFilterSection">
+                            <div class="protection-header">
+                                <label class="protection-label">
+                                    <input type="checkbox" id="irrecoverableFilter">
+                                    <span>🔮 AI復元困難化フィルタ (上級)</span>
+                                </label>
+                            </div>
+                            <p class="protection-desc">4層構造の高度なノイズでAIによる復元を困難にします。消した部分を自然に埋め合わせできなくなります。</p>
+
+                            <div class="noise-controls" id="irrecoverableControls" style="display: none;">
+                                <div class="noise-slider-group">
+                                    <label for="perlinNoise">🌊 低周波ゆらぎ (Perlin): <span
+                                            id="perlinNoiseValue">20</span>%</label>
+                                    <input type="range" id="perlinNoise" min="0" max="100" value="20">
+                                    <p class="slider-hint">背景の微細な明暗うねり。AIの塗りつぶしを不自然にする</p>
+                                </div>
+                                <div class="noise-slider-group">
+                                    <label for="blueNoise">✨ Blue Noise (高周波): <span
+                                            id="blueNoiseValue">60</span>%</label>
+                                    <input type="range" id="blueNoise" min="0" max="100" value="60">
+                                    <p class="slider-hint">均一に見えて不規則な微粒子。質感の復元を阻害</p>
+                                </div>
+                                <div class="noise-slider-group">
+                                    <label for="directionalNoise">〰️ 方向性ノイズ: <span
+                                            id="directionalNoiseValue">40</span>%</label>
+                                    <input type="range" id="directionalNoise" min="0" max="100" value="40">
+                                    <p class="slider-hint">微細な筆跡・線。AIの方向認識を混乱させる</p>
+                                </div>
+                                <div class="noise-slider-group correlation-slider">
+                                    <label for="correlationField">🔗 相関フィールド: <span
+                                            id="correlationFieldValue">65</span>%</label>
+                                    <input type="range" id="correlationField" min="0" max="100" value="65">
+                                    <p class="slider-hint">ブロック間の統計的依存。一部消すと全体が歪む</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Bタイプ不可視フィルタ（スクショ専用） -->
+                        <div class="control-group protection-section" id="btypeFilterSection">
+                            <div class="protection-header">
+                                <label class="protection-label">
+                                    <input type="checkbox" id="btypeFilter">
+                                    <span>🔤 Bタイプ（黒背景×白文字専用）</span>
+                                </label>
+                            </div>
+                            <p class="protection-desc">完全不可視。見た目は100%そのままで、OCR・復元AIだけが読めなくなります。</p>
+
+                            <div class="noise-controls" id="btypeControls" style="display: none;">
+                                <div class="noise-slider-group">
+                                    <label for="phaseShift">📐 輪郭位相ずらし: <span id="phaseShiftValue">50</span>%</label>
+                                    <input type="range" id="phaseShift" min="0" max="100" value="50">
+                                    <p class="slider-hint">文字エッジをサブピクセル単位でズラす。OCRが字形を誤認</p>
+                                </div>
+                                <div class="noise-slider-group">
+                                    <label for="lumaMod">💡 白文字ゆらぎ: <span id="lumaModValue">50</span>%</label>
+                                    <input type="range" id="lumaMod" min="0" max="100" value="50">
+                                    <p class="slider-hint">白の中を微弱に揺らす。「均一な白」前提を崩す</p>
+                                </div>
+                                <div class="noise-slider-group">
+                                    <label for="bgNoise">🌑 黒背景ノイズ: <span id="bgNoiseValue">50</span>%</label>
+                                    <input type="range" id="bgNoise" min="0" max="100" value="50">
+                                    <p class="slider-hint">黒の中に極微のノイズ。背景除去AIを混乱させる</p>
+                                </div>
+                                <div class="noise-slider-group correlation-slider">
+                                    <label for="btypeCorrelation">🔗 タイル相関: <span
+                                            id="btypeCorrelationValue">58</span>%</label>
+                                    <input type="range" id="btypeCorrelation" min="0" max="100" value="58">
+                                    <p class="slider-hint">8×8タイルで全層を連動。部分消去で全体破綻</p>
+                                </div>
+                            </div>
                         </div>
 
                         <button class="download-btn" id="downloadBtn">

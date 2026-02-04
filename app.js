@@ -53,6 +53,7 @@ const imgJitterSlider = document.getElementById('imgJitter');
 const imgJitterValue = document.getElementById('imgJitterValue');
 const imgScaleSlider = document.getElementById('imgScale');
 const imgScaleValue = document.getElementById('imgScaleValue');
+const imgBlendBtns = document.querySelectorAll('.img-blend-btn');
 
 // 値表示要素
 const opacityValue = document.getElementById('opacityValue');
@@ -86,6 +87,30 @@ const mainSection = document.getElementById('mainSection');
 const diffSection = document.getElementById('diffSection');
 const detectionCheckbox = document.getElementById('tamperDetection');
 
+// AI復元困難化フィルタ DOM要素
+const irrecoverableFilterCheckbox = document.getElementById('irrecoverableFilter');
+const irrecoverableControls = document.getElementById('irrecoverableControls');
+const perlinNoiseSlider = document.getElementById('perlinNoise');
+const perlinNoiseValue = document.getElementById('perlinNoiseValue');
+const blueNoiseSlider = document.getElementById('blueNoise');
+const blueNoiseValue = document.getElementById('blueNoiseValue');
+const directionalNoiseSlider = document.getElementById('directionalNoise');
+const directionalNoiseValue = document.getElementById('directionalNoiseValue');
+const correlationFieldSlider = document.getElementById('correlationField');
+const correlationFieldValue = document.getElementById('correlationFieldValue');
+
+// Bタイプ不可視フィルタ DOM要素
+const btypeFilterCheckbox = document.getElementById('btypeFilter');
+const btypeControls = document.getElementById('btypeControls');
+const phaseShiftSlider = document.getElementById('phaseShift');
+const phaseShiftValue = document.getElementById('phaseShiftValue');
+const lumaModSlider = document.getElementById('lumaMod');
+const lumaModValue = document.getElementById('lumaModValue');
+const bgNoiseSlider = document.getElementById('bgNoise');
+const bgNoiseValue = document.getElementById('bgNoiseValue');
+const btypeCorrelationSlider = document.getElementById('btypeCorrelation');
+const btypeCorrelationValue = document.getElementById('btypeCorrelationValue');
+
 // Diff Logic Elements
 const beforeValues = { img: null };
 const afterValues = { img: null };
@@ -106,6 +131,7 @@ let currentStyle = 'normal';
 let currentFont = 'normal';
 let currentMode = 'text';
 let currentBlendMode = 'source-over';
+let currentImgBlendMode = 'source-over';
 const vignetteSizeSlider = document.getElementById('vignetteSize');
 const vignetteSizeValue = document.getElementById('vignetteSizeValue');
 let currentVignetteColor = 'black';
@@ -175,12 +201,27 @@ function saveSettings() {
         noiseProtection: noiseProtection?.checked,
         tamperDetection: detectionCheckbox?.checked,
 
+        // AI復元困難化フィルタ
+        irrecoverableFilter: irrecoverableFilterCheckbox?.checked,
+        perlinNoise: perlinNoiseSlider?.value,
+        blueNoise: blueNoiseSlider?.value,
+        directionalNoise: directionalNoiseSlider?.value,
+        correlationField: correlationFieldSlider?.value,
+
+        // Bタイプ不可視フィルタ
+        btypeFilter: btypeFilterCheckbox?.checked,
+        phaseShift: phaseShiftSlider?.value,
+        lumaMod: lumaModSlider?.value,
+        bgNoise: bgNoiseSlider?.value,
+        btypeCorrelation: btypeCorrelationSlider?.value,
+
         // ボタン選択状態
         colorMode: currentColorMode,
         style: currentStyle,
         font: currentFont,
         mode: currentMode,
         blendMode: currentBlendMode,
+        imgBlendMode: currentImgBlendMode,
         vignetteColor: currentVignetteColor
     };
 
@@ -295,6 +336,12 @@ function loadSettings() {
                 btn.classList.toggle('active', btn.dataset.blend === settings.blendMode);
             });
         }
+        if (settings.imgBlendMode) {
+            currentImgBlendMode = settings.imgBlendMode;
+            imgBlendBtns.forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.imgBlend === settings.imgBlendMode);
+            });
+        }
         if (settings.vignetteColor) {
             currentVignetteColor = settings.vignetteColor;
             const vignetteBtns = document.querySelectorAll('[data-vignette-color]');
@@ -302,6 +349,30 @@ function loadSettings() {
                 btn.classList.toggle('active', btn.dataset.vignetteColor === settings.vignetteColor);
             });
         }
+
+        // AI復元困難化フィルタ復元
+        if (settings.irrecoverableFilter !== undefined && irrecoverableFilterCheckbox) {
+            irrecoverableFilterCheckbox.checked = settings.irrecoverableFilter;
+            if (irrecoverableControls) {
+                irrecoverableControls.style.display = settings.irrecoverableFilter ? 'block' : 'none';
+            }
+        }
+        restoreSlider(perlinNoiseSlider, perlinNoiseValue, settings.perlinNoise);
+        restoreSlider(blueNoiseSlider, blueNoiseValue, settings.blueNoise);
+        restoreSlider(directionalNoiseSlider, directionalNoiseValue, settings.directionalNoise);
+        restoreSlider(correlationFieldSlider, correlationFieldValue, settings.correlationField);
+
+        // Bタイプ不可視フィルタ復元
+        if (settings.btypeFilter !== undefined && btypeFilterCheckbox) {
+            btypeFilterCheckbox.checked = settings.btypeFilter;
+            if (btypeControls) {
+                btypeControls.style.display = settings.btypeFilter ? 'block' : 'none';
+            }
+        }
+        restoreSlider(phaseShiftSlider, phaseShiftValue, settings.phaseShift);
+        restoreSlider(lumaModSlider, lumaModValue, settings.lumaMod);
+        restoreSlider(bgNoiseSlider, bgNoiseValue, settings.bgNoise);
+        restoreSlider(btypeCorrelationSlider, btypeCorrelationValue, settings.btypeCorrelation);
 
         console.log('設定を復元しました');
     } catch (e) {
@@ -619,6 +690,90 @@ function setupEffectControls() {
     if (noiseCorrelationSlider) {
         noiseCorrelationSlider.addEventListener('input', () => {
             noiseCorrelationValue.textContent = noiseCorrelationSlider.value;
+            renderWatermark();
+        });
+    }
+
+    // AI復元困難化フィルタ
+    if (irrecoverableFilterCheckbox) {
+        irrecoverableFilterCheckbox.addEventListener('change', () => {
+            if (irrecoverableControls) {
+                irrecoverableControls.style.display = irrecoverableFilterCheckbox.checked ? 'block' : 'none';
+            }
+            renderWatermark();
+        });
+    }
+
+    // Perlinノイズスライダー
+    if (perlinNoiseSlider) {
+        perlinNoiseSlider.addEventListener('input', () => {
+            perlinNoiseValue.textContent = perlinNoiseSlider.value;
+            renderWatermark();
+        });
+    }
+
+    // Blue Noiseスライダー
+    if (blueNoiseSlider) {
+        blueNoiseSlider.addEventListener('input', () => {
+            blueNoiseValue.textContent = blueNoiseSlider.value;
+            renderWatermark();
+        });
+    }
+
+    // 方向性ノイズスライダー
+    if (directionalNoiseSlider) {
+        directionalNoiseSlider.addEventListener('input', () => {
+            directionalNoiseValue.textContent = directionalNoiseSlider.value;
+            renderWatermark();
+        });
+    }
+
+    // 相関フィールドスライダー
+    if (correlationFieldSlider) {
+        correlationFieldSlider.addEventListener('input', () => {
+            correlationFieldValue.textContent = correlationFieldSlider.value;
+            renderWatermark();
+        });
+    }
+
+    // Bタイプ不可視フィルタ
+    if (btypeFilterCheckbox) {
+        btypeFilterCheckbox.addEventListener('change', () => {
+            if (btypeControls) {
+                btypeControls.style.display = btypeFilterCheckbox.checked ? 'block' : 'none';
+            }
+            renderWatermark();
+        });
+    }
+
+    // 輪郭位相ずらしスライダー
+    if (phaseShiftSlider) {
+        phaseShiftSlider.addEventListener('input', () => {
+            phaseShiftValue.textContent = phaseShiftSlider.value;
+            renderWatermark();
+        });
+    }
+
+    // 白文字ゆらぎスライダー
+    if (lumaModSlider) {
+        lumaModSlider.addEventListener('input', () => {
+            lumaModValue.textContent = lumaModSlider.value;
+            renderWatermark();
+        });
+    }
+
+    // 黒背景ノイズスライダー
+    if (bgNoiseSlider) {
+        bgNoiseSlider.addEventListener('input', () => {
+            bgNoiseValue.textContent = bgNoiseSlider.value;
+            renderWatermark();
+        });
+    }
+
+    // Bタイプ相関スライダー
+    if (btypeCorrelationSlider) {
+        btypeCorrelationSlider.addEventListener('input', () => {
+            btypeCorrelationValue.textContent = btypeCorrelationSlider.value;
             renderWatermark();
         });
     }
@@ -981,6 +1136,16 @@ function setupWatermarkImageUpload() {
             renderWatermark();
         });
     }
+
+    // 画像専用合成モードボタン
+    imgBlendBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            imgBlendBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentImgBlendMode = btn.dataset.imgBlend;
+            renderWatermark();
+        });
+    });
 }
 
 // フォント文字列を取得
@@ -1086,11 +1251,11 @@ function renderWatermark() {
         renderImageWatermarkToLayer(imgCtx, imgSpacing, imgScale, imgAngle, imgJitter);
     }
 
-    // 4. それぞれのレイヤーを個別の透明度で合成
-    ctx.globalCompositeOperation = currentBlendMode;
+    // 4. それぞれのレイヤーを個別の透明度・合成モードで合成
 
-    // テキストレイヤーを合成（テキスト透明度、100%超は重ね描き）
+    // テキストレイヤーを合成（テキスト透明度・テキスト合成モード）
     if (shouldRenderText) {
+        ctx.globalCompositeOperation = currentBlendMode;
         const rawOpacity = parseInt(opacitySlider.value);
 
         if (rawOpacity > 100) {
@@ -1108,8 +1273,9 @@ function renderWatermark() {
         }
     }
 
-    // 画像レイヤーを合成（画像専用透明度）
+    // 画像レイヤーを合成（画像専用透明度・画像専用合成モード）
     if (shouldRenderImage && watermarkImage) {
+        ctx.globalCompositeOperation = currentImgBlendMode;
         const imgOpacity = imgOpacitySlider ? parseInt(imgOpacitySlider.value) / 100 : 0.7;
         ctx.globalAlpha = imgOpacity;
         ctx.drawImage(imgCanvas, 0, 0);
@@ -1143,6 +1309,26 @@ function renderWatermark() {
             midStrength: midFreqStrengthSlider ? parseInt(midFreqStrengthSlider.value) : 40,
             highFreq: highFreqNoiseSlider ? parseInt(highFreqNoiseSlider.value) : 50,
             correlation: noiseCorrelationSlider ? parseInt(noiseCorrelationSlider.value) : 70
+        });
+    }
+
+    // 7. AI復元困難化フィルタ（最終工程）
+    if (irrecoverableFilterCheckbox && irrecoverableFilterCheckbox.checked) {
+        applyIrrecoverableFilter(ctx, canvas.width, canvas.height, {
+            perlin: perlinNoiseSlider ? parseInt(perlinNoiseSlider.value) : 20,
+            blueNoise: blueNoiseSlider ? parseInt(blueNoiseSlider.value) : 60,
+            directional: directionalNoiseSlider ? parseInt(directionalNoiseSlider.value) : 40,
+            correlation: correlationFieldSlider ? parseInt(correlationFieldSlider.value) : 65
+        });
+    }
+
+    // 8. Bタイプ不可視フィルタ（黒背景×白文字専用）
+    if (btypeFilterCheckbox && btypeFilterCheckbox.checked) {
+        applyBTypeInvisibleFilter(ctx, canvas.width, canvas.height, {
+            phaseShift: phaseShiftSlider ? parseInt(phaseShiftSlider.value) : 50,
+            lumaMod: lumaModSlider ? parseInt(lumaModSlider.value) : 50,
+            bgNoise: bgNoiseSlider ? parseInt(bgNoiseSlider.value) : 50,
+            correlation: btypeCorrelationSlider ? parseInt(btypeCorrelationSlider.value) : 58
         });
     }
 
@@ -1321,6 +1507,304 @@ function createAnalogNoisePattern(ctx, type = 'dark') {
     }
     pCtx.putImageData(imgData, 0, 0);
     return ctx.createPattern(pCanvas, 'repeat');
+}
+
+// =====================================================
+// AI復元困難化フィルタ（4層構造）
+// =====================================================
+
+// Perlinノイズ生成用のグラデーションベクトル
+function createPerlinGrad() {
+    const angle = Math.random() * Math.PI * 2;
+    return [Math.cos(angle), Math.sin(angle)];
+}
+
+// ドット積
+function dot(g, x, y) {
+    return g[0] * x + g[1] * y;
+}
+
+// スムーズ補間
+function fade(t) {
+    return t * t * t * (t * (t * 6 - 15) + 10);
+}
+
+// 線形補間
+function lerp(a, b, t) {
+    return a + t * (b - a);
+}
+
+// Perlinノイズ生成
+function perlinNoise2D(x, y, gradients, gridSize) {
+    const x0 = Math.floor(x / gridSize);
+    const y0 = Math.floor(y / gridSize);
+    const x1 = x0 + 1;
+    const y1 = y0 + 1;
+
+    const sx = fade((x / gridSize) - x0);
+    const sy = fade((y / gridSize) - y0);
+
+    const getGrad = (gx, gy) => {
+        const key = `${gx},${gy}`;
+        if (!gradients[key]) {
+            gradients[key] = createPerlinGrad();
+        }
+        return gradients[key];
+    };
+
+    const n00 = dot(getGrad(x0, y0), (x / gridSize) - x0, (y / gridSize) - y0);
+    const n10 = dot(getGrad(x1, y0), (x / gridSize) - x1, (y / gridSize) - y0);
+    const n01 = dot(getGrad(x0, y1), (x / gridSize) - x0, (y / gridSize) - y1);
+    const n11 = dot(getGrad(x1, y1), (x / gridSize) - x1, (y / gridSize) - y1);
+
+    const ix0 = lerp(n00, n10, sx);
+    const ix1 = lerp(n01, n11, sx);
+
+    return lerp(ix0, ix1, sy);
+}
+
+// Blue Noise生成（Poisson Disk Sampling風の疑似実装）
+function generateBlueNoiseMap(width, height, density) {
+    const map = new Float32Array(width * height);
+    const cellSize = Math.max(4, Math.floor(20 - density * 0.15));
+
+    // グリッドベースの配置
+    for (let y = 0; y < height; y += cellSize) {
+        for (let x = 0; x < width; x += cellSize) {
+            // セル内のランダム位置
+            const px = x + Math.random() * cellSize;
+            const py = y + Math.random() * cellSize;
+
+            if (px < width && py < height) {
+                const idx = Math.floor(py) * width + Math.floor(px);
+                // 周囲に影響を与える（ガウス風の広がり）
+                const radius = cellSize * 0.8;
+                for (let dy = -radius; dy <= radius; dy++) {
+                    for (let dx = -radius; dx <= radius; dx++) {
+                        const nx = Math.floor(px + dx);
+                        const ny = Math.floor(py + dy);
+                        if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
+                            const dist = Math.sqrt(dx * dx + dy * dy);
+                            const falloff = Math.exp(-dist * dist / (radius * radius * 0.5));
+                            map[ny * width + nx] += falloff * (0.5 + Math.random() * 0.5);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return map;
+}
+
+// 方向性ノイズ（微細な線・筆跡）
+function generateDirectionalNoise(width, height, strength) {
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+
+    const lineCount = Math.floor((width * height) / 2000 * (strength / 100));
+
+    ctx.strokeStyle = 'rgba(128, 128, 128, 0.1)';
+    ctx.lineWidth = 0.3 + Math.random() * 0.4;
+
+    for (let i = 0; i < lineCount; i++) {
+        const x = Math.random() * width;
+        const y = Math.random() * height;
+        const angle = Math.random() * Math.PI;
+        const length = 3 + Math.random() * 8;
+
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(x + Math.cos(angle) * length, y + Math.sin(angle) * length);
+        ctx.stroke();
+    }
+
+    return ctx.getImageData(0, 0, width, height);
+}
+
+// 相関フィールド生成（8x8ブロック）
+function generateCorrelationField(width, height, strength) {
+    const blockSize = 8;
+    const blocksX = Math.ceil(width / blockSize);
+    const blocksY = Math.ceil(height / blockSize);
+    const field = [];
+
+    for (let by = 0; by < blocksY; by++) {
+        field[by] = [];
+        for (let bx = 0; bx < blocksX; bx++) {
+            // 各ブロックに対して低・中・高周波の変調値を設定（強度5倍に増強）
+            field[by][bx] = {
+                lowMod: 1 + (Math.random() - 0.5) * 0.3 * (strength / 100),
+                midMod: 1 + (Math.random() - 0.5) * 0.4 * (strength / 100),
+                highMod: 1 + (Math.random() - 0.5) * 0.5 * (strength / 100)
+            };
+        }
+    }
+    return { field, blockSize, blocksX, blocksY };
+}
+
+// メインフィルタ関数
+function applyIrrecoverableFilter(ctx, width, height, options) {
+    const { perlin, blueNoise, directional, correlation } = options;
+
+    // 画像データ取得
+    const imageData = ctx.getImageData(0, 0, width, height);
+    const data = imageData.data;
+
+    // 1. Perlinノイズ用グラデーント生成
+    const gradients = {};
+    const gridSize = 64; // Perlinのグリッドサイズ
+
+    // 2. Blue Noiseマップ生成
+    const blueNoiseMap = generateBlueNoiseMap(width, height, blueNoise);
+
+    // 3. 方向性ノイズ生成
+    const directionalData = generateDirectionalNoise(width, height, directional);
+
+    // 4. 相関フィールド生成
+    const corrField = generateCorrelationField(width, height, correlation);
+
+    // ピクセル単位で処理
+    for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+            const idx = (y * width + x) * 4;
+
+            // 相関フィールドのブロック取得
+            const bx = Math.floor(x / corrField.blockSize);
+            const by = Math.floor(y / corrField.blockSize);
+            const block = corrField.field[Math.min(by, corrField.blocksY - 1)]?.[Math.min(bx, corrField.blocksX - 1)] || { lowMod: 1, midMod: 1, highMod: 1 };
+
+            // 層1: Perlinノイズ（低周波ゆらぎ）- 強度5倍に増強
+            let perlinVal = 0;
+            if (perlin > 0) {
+                perlinVal = perlinNoise2D(x, y, gradients, gridSize) * (perlin / 100) * 0.15 * block.lowMod;
+            }
+
+            // 層2: Blue Noise（高周波）- 強度5倍に増強
+            let blueVal = 0;
+            if (blueNoise > 0) {
+                const bnIdx = y * width + x;
+                blueVal = ((blueNoiseMap[bnIdx] || 0) - 0.5) * (blueNoise / 100) * 0.4 * block.highMod;
+            }
+
+            // 層3: 方向性ノイズ（中域）- 強度5倍に増強
+            let dirVal = 0;
+            if (directional > 0) {
+                const dirIdx = (y * width + x) * 4;
+                dirVal = ((directionalData.data[dirIdx] - 128) / 255) * (directional / 100) * 0.6 * block.midMod;
+            }
+
+            // 合成（相関フィールドによる変調済み）
+            const totalOffset = (perlinVal + blueVal + dirVal) * 255;
+
+            // RGB各チャンネルに異なる量を適用（AIが色を復元しにくくする）
+            // チャンネルごとに独立したランダム変動を加える
+            const rVar = (Math.random() - 0.5) * 0.4 + 1;
+            const gVar = (Math.random() - 0.5) * 0.4 + 1;
+            const bVar = (Math.random() - 0.5) * 0.4 + 1;
+            data[idx] = Math.max(0, Math.min(255, data[idx] + totalOffset * rVar));
+            data[idx + 1] = Math.max(0, Math.min(255, data[idx + 1] + totalOffset * gVar));
+            data[idx + 2] = Math.max(0, Math.min(255, data[idx + 2] + totalOffset * bVar));
+            // アルファは変更しない
+        }
+    }
+
+    ctx.putImageData(imageData, 0, 0);
+}
+
+// =====================================================
+// Bタイプ不可視フィルタ（黒背景×白文字専用）
+// 完全不可視だがAI/OCRを混乱させる
+// =====================================================
+
+function applyBTypeInvisibleFilter(ctx, width, height, options) {
+    const { phaseShift, lumaMod, bgNoise, correlation } = options;
+
+    // 画像データ取得
+    const imageData = ctx.getImageData(0, 0, width, height);
+    const data = imageData.data;
+
+    // 輝度計算ヘルパー
+    const getLuma = (r, g, b) => 0.299 * r + 0.587 * g + 0.114 * b;
+
+    // 8x8タイル相関フィールド生成
+    const tileSize = 8;
+    const tilesX = Math.ceil(width / tileSize);
+    const tilesY = Math.ceil(height / tileSize);
+    const tileField = [];
+
+    for (let ty = 0; ty < tilesY; ty++) {
+        tileField[ty] = [];
+        for (let tx = 0; tx < tilesX; tx++) {
+            // 各タイルの変調パラメータ（±variance）
+            const variance = 0.04 * (correlation / 100);
+            tileField[ty][tx] = {
+                phaseMod: 1 + (Math.random() - 0.5) * variance * 2,
+                lumaMod: 1 + (Math.random() - 0.5) * variance * 2,
+                noiseMod: 1 + (Math.random() - 0.5) * variance * 2,
+                wavePhase: Math.random() * Math.PI * 2  // 周期ゆらぎの位相
+            };
+        }
+    }
+
+    // ピクセル単位で処理
+    for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+            const idx = (y * width + x) * 4;
+            const r = data[idx];
+            const g = data[idx + 1];
+            const b = data[idx + 2];
+            const luma = getLuma(r, g, b);
+
+            // タイル取得
+            const tx = Math.floor(x / tileSize);
+            const ty = Math.floor(y / tileSize);
+            const tile = tileField[Math.min(ty, tilesY - 1)]?.[Math.min(tx, tilesX - 1)] || { phaseMod: 1, lumaMod: 1, noiseMod: 1, wavePhase: 0 };
+
+            // A層: 輪郭検出と位相ずらし（輝度勾配のある場所）
+            // 暗い場所(黒背景)と明るい場所(白文字)の境界を検出
+            let phaseOffset = 0;
+            if (phaseShift > 0 && luma > 20 && luma < 235) {
+                // 境界領域（アンチエイリアス部分）に位相ずらしを適用
+                const phaseStrength = (phaseShift / 100) * 0.012 * tile.phaseMod;
+                // サブピクセルレベルの輝度シフト
+                const direction = (x + y + tile.wavePhase * 57) % 360;
+                phaseOffset = Math.sin(direction * Math.PI / 180) * phaseStrength * 3;
+            }
+
+            // B層: 白文字内部の微弱周期ゆらぎ（高輝度ピクセル）
+            let lumaOffset = 0;
+            if (lumaMod > 0 && luma > 200) {
+                // 白文字領域
+                const lumaStrength = (lumaMod / 100) * 0.009 * tile.lumaMod;
+                // 周期: 1.5〜2.7px の間でタイルごとに変化
+                const waveLength = 1.5 + (tile.wavePhase / Math.PI) * 1.2;
+                lumaOffset = Math.sin(x / waveLength + y / waveLength + tile.wavePhase) * lumaStrength * 3;
+            }
+
+            // C層: 黒背景への逆相ノイズ（低輝度ピクセル）
+            let noiseOffset = 0;
+            if (bgNoise > 0 && luma < 30) {
+                // 黒背景領域
+                const noiseStrength = (bgNoise / 100) * 0.004 * tile.noiseMod;
+                // Poisson-like分布（低確率で微小変化）
+                if (Math.random() < 0.006) {
+                    noiseOffset = (Math.random() - 0.5) * noiseStrength * 4;
+                }
+            }
+
+            // 合成（非常に微弱な変化）
+            const totalOffset = (phaseOffset + lumaOffset + noiseOffset) * 255;
+
+            // RGB各チャンネルに適用
+            data[idx] = Math.max(0, Math.min(255, Math.round(r + totalOffset)));
+            data[idx + 1] = Math.max(0, Math.min(255, Math.round(g + totalOffset)));
+            data[idx + 2] = Math.max(0, Math.min(255, Math.round(b + totalOffset)));
+        }
+    }
+
+    ctx.putImageData(imageData, 0, 0);
 }
 
 // 改ざん検出用ラベルの刻印
