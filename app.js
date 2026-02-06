@@ -1167,9 +1167,10 @@ function getFontString(fontSize) {
 }
 // =====================================================
 // ウォーターマーク描画（タイル状配置）
+// forDownload: true の場合、重いフィルタも適用（ダウンロード時用）
 // =====================================================
 
-function renderWatermark() {
+function renderWatermark(forDownload = false) {
     if (!originalImage) {
         saveSettings(); // 画像なくても設定は保存
         return;
@@ -1312,8 +1313,8 @@ function renderWatermark() {
         });
     }
 
-    // 7. AI復元困難化フィルタ（最終工程）
-    if (irrecoverableFilterCheckbox && irrecoverableFilterCheckbox.checked) {
+    // 7. AI復元困難化フィルタ（ダウンロード時のみ適用 - 重い処理）
+    if (forDownload && irrecoverableFilterCheckbox && irrecoverableFilterCheckbox.checked) {
         applyIrrecoverableFilter(ctx, canvas.width, canvas.height, {
             perlin: perlinNoiseSlider ? parseInt(perlinNoiseSlider.value) : 20,
             blueNoise: blueNoiseSlider ? parseInt(blueNoiseSlider.value) : 60,
@@ -1322,8 +1323,8 @@ function renderWatermark() {
         });
     }
 
-    // 8. Bタイプ不可視フィルタ（黒背景×白文字専用）
-    if (btypeFilterCheckbox && btypeFilterCheckbox.checked) {
+    // 8. Bタイプ不可視フィルタ（ダウンロード時のみ適用 - 重い処理）
+    if (forDownload && btypeFilterCheckbox && btypeFilterCheckbox.checked) {
         applyBTypeInvisibleFilter(ctx, canvas.width, canvas.height, {
             phaseShift: phaseShiftSlider ? parseInt(phaseShiftSlider.value) : 50,
             lumaMod: lumaModSlider ? parseInt(lumaModSlider.value) : 50,
@@ -1767,37 +1768,41 @@ function applyBTypeInvisibleFilter(ctx, width, height, options) {
             let phaseOffset = 0;
             if (phaseShift > 0 && luma > 20 && luma < 235) {
                 // 境界領域（アンチエイリアス部分）に位相ずらしを適用
-                const phaseStrength = (phaseShift / 100) * 0.012 * tile.phaseMod;
-                // サブピクセルレベルの輝度シフト
+                // 強度: スライダー100%で最大±1.2%の輝度変化
+                const phaseStrength = (phaseShift / 100) * 0.012;
                 const direction = (x + y + tile.wavePhase * 57) % 360;
-                phaseOffset = Math.sin(direction * Math.PI / 180) * phaseStrength * 3;
+                // 最大で約±3の輝度変化（255の1.2%）
+                phaseOffset = Math.sin(direction * Math.PI / 180) * phaseStrength * 255 * tile.phaseMod;
             }
 
             // B層: 白文字内部の微弱周期ゆらぎ（高輝度ピクセル）
             let lumaOffset = 0;
             if (lumaMod > 0 && luma > 200) {
                 // 白文字領域
-                const lumaStrength = (lumaMod / 100) * 0.009 * tile.lumaMod;
-                // 周期: 1.5〜2.7px の間でタイルごとに変化
+                // 強度: スライダー100%で最大±0.9%の輝度変化
+                const lumaStrength = (lumaMod / 100) * 0.009;
                 const waveLength = 1.5 + (tile.wavePhase / Math.PI) * 1.2;
-                lumaOffset = Math.sin(x / waveLength + y / waveLength + tile.wavePhase) * lumaStrength * 3;
+                // 最大で約±2.3の輝度変化（255の0.9%）
+                lumaOffset = Math.sin(x / waveLength + y / waveLength + tile.wavePhase) * lumaStrength * 255 * tile.lumaMod;
             }
 
             // C層: 黒背景への逆相ノイズ（低輝度ピクセル）
             let noiseOffset = 0;
             if (bgNoise > 0 && luma < 30) {
                 // 黒背景領域
-                const noiseStrength = (bgNoise / 100) * 0.004 * tile.noiseMod;
-                // Poisson-like分布（低確率で微小変化）
+                // 強度: スライダー100%で最大±0.4%の輝度変化
+                const noiseStrength = (bgNoise / 100) * 0.004;
+                // 低確率（0.6%）で微小変化を適用
                 if (Math.random() < 0.006) {
-                    noiseOffset = (Math.random() - 0.5) * noiseStrength * 4;
+                    // 最大で約±1の輝度変化（255の0.4%）
+                    noiseOffset = (Math.random() - 0.5) * noiseStrength * 255 * tile.noiseMod;
                 }
             }
 
-            // 合成（非常に微弱な変化）
-            const totalOffset = (phaseOffset + lumaOffset + noiseOffset) * 255;
+            // 合成（各オフセットはすでに0-255スケール）
+            const totalOffset = phaseOffset + lumaOffset + noiseOffset;
 
-            // RGB各チャンネルに適用
+            // RGB各チャンネルに適用（丸めて整数に）
             data[idx] = Math.max(0, Math.min(255, Math.round(r + totalOffset)));
             data[idx + 1] = Math.max(0, Math.min(255, Math.round(g + totalOffset)));
             data[idx + 2] = Math.max(0, Math.min(255, Math.round(b + totalOffset)));
@@ -2303,6 +2308,9 @@ downloadBtn.addEventListener('click', () => {
     // Canvasが空なら何もしない
     if (!originalImage) return;
 
+    // ダウンロード時のみ重いフィルタを適用するため再レンダリング
+    renderWatermark(true);
+
     const link = document.createElement('a');
 
     // タイムスタンプ生成
@@ -2314,6 +2322,9 @@ downloadBtn.addEventListener('click', () => {
 
     link.href = canvas.toDataURL('image/png');
     link.click();
+
+    // プレビューに戻す（軽量版）
+    renderWatermark(false);
 });
 
 // ファイル選択ボタンの連携（見た目カスタマイズ用）
