@@ -914,6 +914,11 @@ input[type="range"]::-webkit-slider-thumb:hover {
 /* タブセクションの表示制御（diffSectionのみ - mainSectionはメディアクエリで制御） */
 #diffSection {
     display: none;
+    min-height: 400px;
+    opacity: 1 !important;
+    visibility: visible !important;
+    z-index: 1;
+    position: relative;
 }
 
 .diff-container h2 {
