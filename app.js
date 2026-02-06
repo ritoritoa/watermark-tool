@@ -2465,8 +2465,8 @@ if (thresholdSlider) {
 // Diff生成ロジック
 function makeDiff(beforeImg, afterImg, gain, threshold) {
     // 基準サイズはBefore（原本）に合わせる
-    const w = beforeImg.width;
-    const h = beforeImg.height;
+    const w = beforeImg.naturalWidth || beforeImg.width;
+    const h = beforeImg.naturalHeight || beforeImg.height;
 
     // キャンバス準備
     diffCanvas.width = w;
@@ -2478,15 +2478,18 @@ function makeDiff(beforeImg, afterImg, gain, threshold) {
     beforeCanvas.width = w;
     beforeCanvas.height = h;
     const beforeCtx = beforeCanvas.getContext('2d');
-    beforeCtx.drawImage(beforeImg, 0, 0);
+    // 補間を無効にして正確なピクセル比較を行う
+    beforeCtx.imageSmoothingEnabled = false;
+    beforeCtx.drawImage(beforeImg, 0, 0, w, h);
     const beforeData = beforeCtx.getImageData(0, 0, w, h).data;
 
-    // 2. Afterデータの取得 (伸縮: cover/contain等も考えられるが、一旦fillで比較)
+    // 2. Afterデータの取得
     const afterCanvas = document.createElement('canvas');
     afterCanvas.width = w;
     afterCanvas.height = h;
     const afterCtx = afterCanvas.getContext('2d');
-    // サイズ違いを吸収するため、強制的にBeforeサイズにリサイズ描画
+    // 同じく補間を無効に
+    afterCtx.imageSmoothingEnabled = false;
     afterCtx.drawImage(afterImg, 0, 0, w, h);
     const afterData = afterCtx.getImageData(0, 0, w, h).data;
 
