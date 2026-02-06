@@ -914,27 +914,23 @@ input[type="range"]::-webkit-slider-thumb:hover {
 /* タブセクションの表示制御（diffSectionのみ - mainSectionはメディアクエリで制御） */
 #diffSection {
     display: none;
-    min-height: 400px;
-    opacity: 1 !important;
-    visibility: visible !important;
-    z-index: 100;
-    position: static !important;
-    transform: none !important;
-    top: auto !important;
-    left: auto !important;
-    right: auto !important;
-    bottom: auto !important;
-    margin-top: 1rem;
-    /* デバッグ用 - 極端なコントラスト */
-    border: 10px solid lime !important;
+    /* 強制的に画面の上に表示 */
+    position: fixed !important;
+    top: 100px !important;
+    left: 50px !important;
+    right: 50px !important;
+    bottom: 50px !important;
+    z-index: 99999 !important;
+    overflow: auto !important;
+    /* 極端なコントラスト */
     background-color: white !important;
-    color: black !important;
+    border: 10px solid red !important;
+    padding: 20px !important;
 }
 
 /* 全ての子要素も強制的に黒文字 */
 #diffSection * {
     color: black !important;
-    background-color: transparent !important;
     visibility: visible !important;
     opacity: 1 !important;
 }
