@@ -1,4 +1,4 @@
-const CACHE_NAME = 'watermark-tool-v46-posreset';
+const CACHE_NAME = 'watermark-tool-v47-whitecontrast';
 const ASSETS = [
     './',
     './index.html',

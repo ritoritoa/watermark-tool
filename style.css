@@ -925,9 +925,18 @@ input[type="range"]::-webkit-slider-thumb:hover {
     right: auto !important;
     bottom: auto !important;
     margin-top: 1rem;
-    /* デバッグ用 */
-    border: 5px solid red !important;
-    background-color: #1a1a2e !important;
+    /* デバッグ用 - 極端なコントラスト */
+    border: 10px solid lime !important;
+    background-color: white !important;
+    color: black !important;
+}
+
+/* 全ての子要素も強制的に黒文字 */
+#diffSection * {
+    color: black !important;
+    background-color: transparent !important;
+    visibility: visible !important;
+    opacity: 1 !important;
 }
 
 .diff-container h2 {
