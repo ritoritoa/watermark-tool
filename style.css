@@ -911,11 +911,7 @@ input[type="range"]::-webkit-slider-thumb:hover {
     margin: 0 auto;
 }
 
-/* タブセクションの表示制御 */
-#mainSection {
-    display: block;
-}
-
+/* タブセクションの表示制御（diffSectionのみ - mainSectionはメディアクエリで制御） */
 #diffSection {
     display: none;
 }

@@ -2349,9 +2349,10 @@ if (tabBtns) {
             btn.classList.add('active');
 
             // セクション表示切り替え
+            // mainSectionは display: '' でCSSのメディアクエリ（grid）に任せる
             const tabName = btn.dataset.tab;
             if (tabName === 'main') {
-                mainSection.style.display = 'block';
+                mainSection.style.display = '';  // CSSに任せる（PC: grid, SP: block）
                 diffSection.style.display = 'none';
             } else {
                 mainSection.style.display = 'none';
