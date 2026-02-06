@@ -4,7 +4,7 @@
  */
 
 // ビルドID（改ざん検出モードで使用）
-const BUILD_ID = 'v2025-01-27';
+const BUILD_ID = 'v2026-02-07';
 
 // DOM要素の参照
 const dropZone = document.getElementById('dropZone');
@@ -1331,6 +1331,11 @@ function renderWatermark(forDownload = false) {
             bgNoise: bgNoiseSlider ? parseInt(bgNoiseSlider.value) : 50,
             correlation: btypeCorrelationSlider ? parseInt(btypeCorrelationSlider.value) : 58
         });
+    }
+
+    // 9. 改ざん検出モードがONなら検出用ラベルを刻印
+    if (detectionCheckbox && detectionCheckbox.checked) {
+        stampDetectionLabel(ctx, canvas.width, canvas.height);
     }
 
     // 設定を自動保存
