@@ -2353,16 +2353,22 @@ if (tabBtns && tabBtns.length > 0) {
             // セクション表示切り替え
             // mainSectionは display: '' でCSSのメディアクエリ（grid）に任せる
             const tabName = btn.dataset.tab;
+            const mainContent = document.querySelector('.main-content');
+
             if (tabName === 'main') {
                 mainSection.style.display = '';  // CSSに任せる（PC: grid, SP: block）
                 diffSection.style.display = 'none';
+                if (mainContent) mainContent.style.display = '';  // CSSに任せる
                 console.log('メインタブ表示: mainSection=visible, diffSection=hidden');
             } else {
                 mainSection.style.display = 'none';
                 diffSection.style.display = 'block';
+                // Diff表示時はmain-contentのgridを解除してblockにする
+                if (mainContent) mainContent.style.display = 'block';
                 console.log('Diffタブ表示: mainSection=hidden, diffSection=block');
                 console.log('diffSection現在のstyle:', diffSection.style.display);
                 console.log('diffSection innerHTML長さ:', diffSection.innerHTML.length);
+                console.log('mainContent display:', mainContent?.style.display);
             }
         });
     });

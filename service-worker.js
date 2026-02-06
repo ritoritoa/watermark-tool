@@ -1,4 +1,4 @@
-const CACHE_NAME = 'watermark-tool-v43-redborder';
+const CACHE_NAME = 'watermark-tool-v44-gridfix';
 const ASSETS = [
     './',
     './index.html',
