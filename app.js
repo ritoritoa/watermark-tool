@@ -1764,37 +1764,39 @@ function applyBTypeInvisibleFilter(ctx, width, height, options) {
             const tile = tileField[Math.min(ty, tilesY - 1)]?.[Math.min(tx, tilesX - 1)] || { phaseMod: 1, lumaMod: 1, noiseMod: 1, wavePhase: 0 };
 
             // A層: 輪郭検出と位相ずらし（輝度勾配のある場所）
-            // 暗い場所(黒背景)と明るい場所(白文字)の境界を検出
+            // 真の不可視：最大でも±0.3の輝度変化（人間には見えない）
             let phaseOffset = 0;
             if (phaseShift > 0 && luma > 20 && luma < 235) {
                 // 境界領域（アンチエイリアス部分）に位相ずらしを適用
-                // 強度: スライダー100%で最大±1.2%の輝度変化
-                const phaseStrength = (phaseShift / 100) * 0.012;
+                // 強度: スライダー100%で最大±0.12%の輝度変化
+                const phaseStrength = (phaseShift / 100) * 0.0012;
                 const direction = (x + y + tile.wavePhase * 57) % 360;
-                // 最大で約±3の輝度変化（255の1.2%）
+                // 最大で約±0.3の輝度変化（255の0.12%）
                 phaseOffset = Math.sin(direction * Math.PI / 180) * phaseStrength * 255 * tile.phaseMod;
             }
 
             // B層: 白文字内部の微弱周期ゆらぎ（高輝度ピクセル）
+            // 真の不可視：最大でも±0.2の輝度変化
             let lumaOffset = 0;
             if (lumaMod > 0 && luma > 200) {
                 // 白文字領域
-                // 強度: スライダー100%で最大±0.9%の輝度変化
-                const lumaStrength = (lumaMod / 100) * 0.009;
+                // 強度: スライダー100%で最大±0.09%の輝度変化
+                const lumaStrength = (lumaMod / 100) * 0.0009;
                 const waveLength = 1.5 + (tile.wavePhase / Math.PI) * 1.2;
-                // 最大で約±2.3の輝度変化（255の0.9%）
+                // 最大で約±0.2の輝度変化（255の0.09%）
                 lumaOffset = Math.sin(x / waveLength + y / waveLength + tile.wavePhase) * lumaStrength * 255 * tile.lumaMod;
             }
 
             // C層: 黒背景への逆相ノイズ（低輝度ピクセル）
+            // 真の不可視：最大でも±0.1の輝度変化
             let noiseOffset = 0;
             if (bgNoise > 0 && luma < 30) {
                 // 黒背景領域
-                // 強度: スライダー100%で最大±0.4%の輝度変化
-                const noiseStrength = (bgNoise / 100) * 0.004;
+                // 強度: スライダー100%で最大±0.04%の輝度変化
+                const noiseStrength = (bgNoise / 100) * 0.0004;
                 // 低確率（0.6%）で微小変化を適用
                 if (Math.random() < 0.006) {
-                    // 最大で約±1の輝度変化（255の0.4%）
+                    // 最大で約±0.1の輝度変化（255の0.04%）
                     noiseOffset = (Math.random() - 0.5) * noiseStrength * 255 * tile.noiseMod;
                 }
             }

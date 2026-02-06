@@ -1,4 +1,4 @@
-const CACHE_NAME = 'watermark-tool-v37b-fix';
+const CACHE_NAME = 'watermark-tool-v37c-invisible';
 const ASSETS = [
     './',
     './index.html',
