@@ -1,4 +1,4 @@
-const CACHE_NAME = 'watermark-tool-v42-visibility';
+const CACHE_NAME = 'watermark-tool-v43-redborder';
 const ASSETS = [
     './',
     './index.html',

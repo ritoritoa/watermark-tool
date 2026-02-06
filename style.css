@@ -919,6 +919,9 @@ input[type="range"]::-webkit-slider-thumb:hover {
     visibility: visible !important;
     z-index: 1;
     position: relative;
+    /* デバッグ用 - 後で削除 */
+    border: 5px solid red !important;
+    background-color: #1a1a2e !important;
 }
 
 .diff-container h2 {
