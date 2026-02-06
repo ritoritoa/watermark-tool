@@ -1313,8 +1313,8 @@ function renderWatermark(forDownload = false) {
         });
     }
 
-    // 7. AI復元困難化フィルタ（ダウンロード時のみ適用 - 重い処理）
-    if (forDownload && irrecoverableFilterCheckbox && irrecoverableFilterCheckbox.checked) {
+    // 7. AI復元困難化フィルタ（プレビューでも適用 - 少し重いかも）
+    if (irrecoverableFilterCheckbox && irrecoverableFilterCheckbox.checked) {
         applyIrrecoverableFilter(ctx, canvas.width, canvas.height, {
             perlin: perlinNoiseSlider ? parseInt(perlinNoiseSlider.value) : 20,
             blueNoise: blueNoiseSlider ? parseInt(blueNoiseSlider.value) : 60,
@@ -1323,8 +1323,8 @@ function renderWatermark(forDownload = false) {
         });
     }
 
-    // 8. Bタイプ不可視フィルタ（ダウンロード時のみ適用 - 重い処理）
-    if (forDownload && btypeFilterCheckbox && btypeFilterCheckbox.checked) {
+    // 8. Bタイプ不可視フィルタ（プレビューでも適用）
+    if (btypeFilterCheckbox && btypeFilterCheckbox.checked) {
         applyBTypeInvisibleFilter(ctx, canvas.width, canvas.height, {
             phaseShift: phaseShiftSlider ? parseInt(phaseShiftSlider.value) : 50,
             lumaMod: lumaModSlider ? parseInt(lumaModSlider.value) : 50,
