@@ -924,34 +924,37 @@ input[type="range"]::-webkit-slider-thumb:hover {
     overflow-y: auto !important;
     background-color: var(--bg-primary) !important;
     padding: 2rem !important;
+    padding-top: 4rem !important;
+    /* 戻るボタンの分 */
 }
 
 /* コンテンツコンテナ */
 #diffSection .diff-container {
-    max-width: 900px;
+    max-width: 700px;
     margin: 0 auto;
     background: var(--bg-card);
     border: 1px solid var(--border-color);
     box-shadow: 0 0 50px rgba(0, 0, 0, 0.5);
+    border-radius: var(--radius-lg);
+    padding: 2rem;
 }
 
 /* 戻るボタン用のスタイル */
 .back-to-main-btn {
     position: fixed;
-    top: 20px;
-    left: 20px;
+    top: 1rem;
+    left: 1rem;
     z-index: 100000;
-    padding: 10px 20px;
+    padding: 0.6rem 1.2rem;
     background: var(--accent-gradient);
     color: white;
     border: none;
     border-radius: 30px;
-    font-weight: bold;
+    font-weight: 600;
+    font-size: 0.9rem;
     cursor: pointer;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-    display: flex;
-    align-items: center;
-    gap: 8px;
+    transition: all 0.2s ease;
 }
 
 .back-to-main-btn:hover {
@@ -959,31 +962,26 @@ input[type="range"]::-webkit-slider-thumb:hover {
     box-shadow: 0 6px 20px rgba(108, 92, 231, 0.5);
 }
 
-/* 全ての子要素も強制的に黒文字 */
-#diffSection * {
-    color: black !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-}
+/* ===== Diff Section Typography & Layout ===== */
 
-.diff-container h2 {
-    color: #ffffff !important;
-    margin-bottom: 0.5rem;
+/* タイトル */
+#diffSection h2 {
+    color: var(--text-primary);
     font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
 }
 
-/* 全てのdiff-container内要素に色を強制 */
-.diff-container,
-.diff-container * {
-    color: #ffffff;
-}
-
-.diff-description {
+/* 説明文 */
+#diffSection .diff-description {
     color: var(--text-secondary);
+    font-size: 0.95rem;
     margin-bottom: 1.5rem;
+    line-height: 1.5;
 }
 
-.diff-inputs {
+/* 入力エリア */
+#diffSection .diff-inputs {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 1rem;
@@ -991,62 +989,87 @@ input[type="range"]::-webkit-slider-thumb:hover {
 }
 
 @media (max-width: 600px) {
-    .diff-inputs {
+    #diffSection .diff-inputs {
         grid-template-columns: 1fr;
     }
 }
 
-.diff-input-group {
+#diffSection .diff-input-group {
     background: var(--bg-secondary);
     padding: 1rem;
     border-radius: var(--radius-md);
+    border: 1px solid var(--border-color);
 }
 
-.diff-input-group label {
+#diffSection .diff-input-group label {
     display: block;
-    margin-bottom: 0.5rem;
+    color: var(--text-primary);
     font-weight: 500;
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
 }
 
-.diff-input-group input[type="file"] {
+#diffSection .diff-input-group input[type="file"] {
     width: 100%;
     padding: 0.5rem;
     background: var(--bg-primary);
-    border: 1px solid var(--border-color);
+    border: 1px dashed var(--border-color);
     border-radius: var(--radius-sm);
     color: var(--text-primary);
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: border-color 0.2s;
 }
 
-.diff-preview {
-    margin-top: 0.5rem;
-    min-height: 100px;
+#diffSection .diff-input-group input[type="file"]:hover {
+    border-color: var(--accent-primary);
+}
+
+#diffSection .diff-preview {
+    margin-top: 0.75rem;
+    min-height: 120px;
     background: var(--bg-primary);
     border-radius: var(--radius-sm);
     display: flex;
     align-items: center;
     justify-content: center;
     overflow: hidden;
+    border: 1px solid var(--border-color);
 }
 
-.diff-preview img {
+#diffSection .diff-preview img {
     max-width: 100%;
     max-height: 150px;
     object-fit: contain;
 }
 
-.diff-controls {
-    display: flex;
+/* コントロール（スライダー） */
+#diffSection .diff-controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
     gap: 1rem;
     margin-bottom: 1.5rem;
-    flex-wrap: wrap;
 }
 
-.diff-controls .control-group {
-    flex: 1;
-    min-width: 200px;
+@media (max-width: 600px) {
+    #diffSection .diff-controls {
+        grid-template-columns: 1fr;
+    }
 }
 
-.generate-diff-btn {
+#diffSection .diff-controls .control-group {
+    margin-bottom: 0;
+}
+
+#diffSection .diff-controls label {
+    display: block;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    margin-bottom: 0.4rem;
+}
+
+/* 生成ボタン */
+#diffSection .generate-diff-btn {
     width: 100%;
     padding: 1rem;
     background: var(--accent-gradient);
@@ -1056,39 +1079,44 @@ input[type="range"]::-webkit-slider-thumb:hover {
     font-size: 1rem;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all 0.2s ease;
 }
 
-.generate-diff-btn:hover {
+#diffSection .generate-diff-btn:hover {
     transform: translateY(-2px);
-    box-shadow: var(--shadow-glow);
+    box-shadow: 0 8px 25px rgba(108, 92, 231, 0.4);
 }
 
-.diff-result {
+/* 結果エリア */
+#diffSection .diff-result {
     margin-top: 1.5rem;
-    padding: 1rem;
+    padding: 1.5rem;
     background: var(--bg-secondary);
     border-radius: var(--radius-md);
     text-align: center;
+    border: 1px solid var(--border-color);
 }
 
-.diff-result h3 {
+#diffSection .diff-result h3 {
+    color: var(--text-primary);
+    font-size: 1.1rem;
     margin-bottom: 0.5rem;
 }
 
-.diff-hint {
+#diffSection .diff-hint {
     color: var(--text-secondary);
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     margin-bottom: 1rem;
 }
 
-.diff-result canvas {
+#diffSection #diffCanvas {
     max-width: 100%;
+    border: 1px solid var(--border-color);
     border-radius: var(--radius-sm);
     margin-bottom: 1rem;
 }
 
-#downloadDiffBtn {
+#diffSection #downloadDiffBtn {
     padding: 0.75rem 1.5rem;
     background: var(--accent-gradient);
     border: none;
@@ -1096,10 +1124,12 @@ input[type="range"]::-webkit-slider-thumb:hover {
     color: white;
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all 0.2s ease;
 }
 
-#downloadDiffBtn:hover {
+#diffSection #downloadDiffBtn:hover {
     transform: translateY(-2px);
-    box-shadow: var(--shadow-glow);
+    box-shadow: 0 6px 20px rgba(108, 92, 231, 0.4);
 }
+
+/* End of Diff Section styles */
