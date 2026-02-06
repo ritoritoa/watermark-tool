@@ -911,6 +911,15 @@ input[type="range"]::-webkit-slider-thumb:hover {
     margin: 0 auto;
 }
 
+/* タブセクションの表示制御 */
+#mainSection {
+    display: block;
+}
+
+#diffSection {
+    display: none;
+}
+
 .diff-container h2 {
     color: var(--text-primary);
     margin-bottom: 0.5rem;
