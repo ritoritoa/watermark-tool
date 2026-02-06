@@ -2351,11 +2351,11 @@ if (tabBtns) {
             // セクション表示切り替え
             const tabName = btn.dataset.tab;
             if (tabName === 'main') {
-                mainSection.style.display = '';
+                mainSection.style.display = 'block';
                 diffSection.style.display = 'none';
             } else {
                 mainSection.style.display = 'none';
-                diffSection.style.display = '';
+                diffSection.style.display = 'block';
             }
         });
     });
