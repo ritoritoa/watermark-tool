@@ -917,9 +917,15 @@ input[type="range"]::-webkit-slider-thumb:hover {
     min-height: 400px;
     opacity: 1 !important;
     visibility: visible !important;
-    z-index: 1;
-    position: relative;
-    /* デバッグ用 - 後で削除 */
+    z-index: 100;
+    position: static !important;
+    transform: none !important;
+    top: auto !important;
+    left: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+    margin-top: 1rem;
+    /* デバッグ用 */
     border: 5px solid red !important;
     background-color: #1a1a2e !important;
 }
