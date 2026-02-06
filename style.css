@@ -914,18 +914,49 @@ input[type="range"]::-webkit-slider-thumb:hover {
 /* タブセクションの表示制御（diffSectionのみ - mainSectionはメディアクエリで制御） */
 #diffSection {
     display: none;
-    /* 強制的に画面の上に表示 */
+    /* 強制的に画面の上に表示 (Full Screen Overlay) */
     position: fixed !important;
-    top: 100px !important;
-    left: 50px !important;
-    right: 50px !important;
-    bottom: 50px !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 100vh !important;
     z-index: 99999 !important;
-    overflow: auto !important;
-    /* 極端なコントラスト */
-    background-color: white !important;
-    border: 10px solid red !important;
-    padding: 20px !important;
+    overflow-y: auto !important;
+    background-color: var(--bg-primary) !important;
+    padding: 2rem !important;
+}
+
+/* コンテンツコンテナ */
+#diffSection .diff-container {
+    max-width: 900px;
+    margin: 0 auto;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    box-shadow: 0 0 50px rgba(0, 0, 0, 0.5);
+}
+
+/* 戻るボタン用のスタイル */
+.back-to-main-btn {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    z-index: 100000;
+    padding: 10px 20px;
+    background: var(--accent-gradient);
+    color: white;
+    border: none;
+    border-radius: 30px;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.back-to-main-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(108, 92, 231, 0.5);
 }
 
 /* 全ての子要素も強制的に黒文字 */

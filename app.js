@@ -2336,7 +2336,6 @@ downloadBtn.addEventListener('click', () => {
 
 // ファイル選択ボタンの連携（見た目カスタマイズ用）
 
-// =====================================================
 // タブ切り替え & 改ざん検出Diff機能
 // =====================================================
 
@@ -2345,35 +2344,61 @@ console.log('タブ初期化:', { tabBtns: tabBtns?.length, mainSection, diffSec
 if (tabBtns && tabBtns.length > 0) {
     tabBtns.forEach(btn => {
         btn.addEventListener('click', () => {
-            console.log('タブクリック:', btn.dataset.tab);
+            const tabName = btn.dataset.tab;
+            console.log('タブクリック:', tabName);
+
             // アクティブクラス切り替え
             tabBtns.forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
 
-            // セクション表示切り替え
-            // mainSectionは display: '' でCSSのメディアクエリ（grid）に任せる
-            const tabName = btn.dataset.tab;
-            const mainContent = document.querySelector('.main-content');
-
             if (tabName === 'main') {
-                mainSection.style.display = '';  // CSSに任せる（PC: grid, SP: block）
-                diffSection.style.display = 'none';
-                if (mainContent) mainContent.style.display = '';  // CSSに任せる
-                console.log('メインタブ表示: mainSection=visible, diffSection=hidden');
+                hideDiffSection();
             } else {
-                mainSection.style.display = 'none';
-                diffSection.style.display = 'block';
-                // Diff表示時はmain-contentのgridを解除してblockにする
-                if (mainContent) mainContent.style.display = 'block';
-                console.log('Diffタブ表示: mainSection=hidden, diffSection=block');
-                console.log('diffSection現在のstyle:', diffSection.style.display);
-                console.log('diffSection innerHTML長さ:', diffSection.innerHTML.length);
-                console.log('mainContent display:', mainContent?.style.display);
+                showDiffSection();
             }
         });
     });
 } else {
     console.warn('タブボタンが見つかりません！');
+}
+
+// Diffセクションを表示（Body直下に移動して全画面オーバーレイ）
+function showDiffSection() {
+    // 1. body直下に移動（親要素のCSS影響を回避）
+    if (diffSection.parentNode !== document.body) {
+        document.body.appendChild(diffSection);
+        console.log('DOM移動: diffSectionをbody直下に移動しました');
+    }
+
+    // 2. 戻るボタンの追加（なければ）
+    if (!document.getElementById('backToMainBtn')) {
+        const backBtn = document.createElement('button');
+        backBtn.id = 'backToMainBtn';
+        backBtn.className = 'back-to-main-btn';
+        backBtn.innerHTML = '⬅ メインに戻る';
+        backBtn.onclick = () => {
+            // 「メイン」タブをクリックしたことにする
+            const mainTabBtn = document.querySelector('.tab-btn[data-tab="main"]');
+            if (mainTabBtn) mainTabBtn.click();
+        };
+        diffSection.prepend(backBtn);
+    }
+
+    // 3. 表示
+    diffSection.style.display = 'block';
+    console.log('Diffセクション表示: Overlay Mode');
+}
+
+// Diffセクションを隠す
+function hideDiffSection() {
+    diffSection.style.display = 'none';
+
+    // mainSectionを表示（CSS Grid復帰）
+    if (mainSection) mainSection.style.display = '';
+    const mainContent = document.querySelector('.main-content');
+    if (mainContent) mainContent.style.display = '';
+
+    console.log('メイン画面復帰');
 }
 
 // Diff用 画像読み込みヘルパー

@@ -1,4 +1,5 @@
-const CACHE_NAME = 'watermark-tool-v48-fixed';
+const CACHE_NAME = 'watermark-tool-v50-force-update';
+console.log('🔥 CACHE VERSION: v50 - FORCE UPDATE MODE 🔥');
 const ASSETS = [
     './',
     './index.html',

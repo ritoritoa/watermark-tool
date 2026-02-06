@@ -16,10 +16,14 @@
     <link rel="apple-touch-icon" href="icon-192.png">
     <meta name="theme-color" content="#0f0f1a">
     <script>
+        // 強制的にService Workerを解除してキャッシュをクリアする（デバッグ用）
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('service-worker.js')
-                .then(() => console.log('Service Worker Registered'))
-                .catch((err) => console.log('Service Worker Failed', err));
+            navigator.serviceWorker.getRegistrations().then(function (registrations) {
+                for (let registration of registrations) {
+                    registration.unregister();
+                }
+                console.log('Service Worker Force Unregistered for Debugging');
+            });
         }
     </script>
 </head>
@@ -386,10 +390,6 @@
 
                 <!-- Diff比較セクション -->
                 <div id="diffSection" class="tab-section" style="display: none;">
-                    <!-- デバッグテスト（後で削除） -->
-                    <p style="color: yellow; font-size: 24px; background: red; padding: 20px;">🧪
-                        テスト：この文字が見えたらdiffSectionは表示されてる！</p>
-
                     <div class="diff-container"
                         style="background: #252542; padding: 2rem; border-radius: 20px; max-width: 800px; margin: 0 auto;">
                         <h2 style="color: #ffffff; font-size: 1.5rem; margin-bottom: 0.5rem;">🔍 改ざん検出 (Diff比較)</h2>
