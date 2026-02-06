@@ -2341,9 +2341,11 @@ downloadBtn.addEventListener('click', () => {
 // =====================================================
 
 // タブ切り替え
-if (tabBtns) {
+console.log('タブ初期化:', { tabBtns: tabBtns?.length, mainSection, diffSection });
+if (tabBtns && tabBtns.length > 0) {
     tabBtns.forEach(btn => {
         btn.addEventListener('click', () => {
+            console.log('タブクリック:', btn.dataset.tab);
             // アクティブクラス切り替え
             tabBtns.forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
@@ -2354,12 +2356,18 @@ if (tabBtns) {
             if (tabName === 'main') {
                 mainSection.style.display = '';  // CSSに任せる（PC: grid, SP: block）
                 diffSection.style.display = 'none';
+                console.log('メインタブ表示: mainSection=visible, diffSection=hidden');
             } else {
                 mainSection.style.display = 'none';
                 diffSection.style.display = 'block';
+                console.log('Diffタブ表示: mainSection=hidden, diffSection=block');
+                console.log('diffSection現在のstyle:', diffSection.style.display);
+                console.log('diffSection innerHTML長さ:', diffSection.innerHTML.length);
             }
         });
     });
+} else {
+    console.warn('タブボタンが見つかりません！');
 }
 
 // Diff用 画像読み込みヘルパー
