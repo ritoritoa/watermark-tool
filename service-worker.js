@@ -1,4 +1,4 @@
-const CACHE_NAME = 'watermark-tool-v53-difffix';
+const CACHE_NAME = 'watermark-tool-v54-preset';
 // console.log('🔥 CACHE VERSION: v50 - FORCE UPDATE MODE 🔥');
 const ASSETS = [
     './',

@@ -153,9 +153,174 @@ function init() {
     setupBlendButtons();
     setupWatermarkImageUpload();
     setupEffectControls();
+    setupPresetButtons();
 
     // 前回の設定を復元
     loadSettings();
+}
+
+// =====================================================
+// プリセット機能
+// =====================================================
+
+function setupPresetButtons() {
+    const goldenBtn = document.getElementById('applyGoldenPreset');
+    const resetBtn = document.getElementById('resetToDefault');
+
+    if (goldenBtn) {
+        goldenBtn.addEventListener('click', applyGoldenPreset);
+    }
+    if (resetBtn) {
+        resetBtn.addEventListener('click', resetToDefaultPreset);
+    }
+}
+
+// 黄金設定プリセット（AI除去耐性・見た目の美しさ両立）
+function applyGoldenPreset() {
+    // 基本設定
+    setSliderValue(opacitySlider, opacityValue, 20);
+    setSliderValue(fontSizeSlider, fontSizeValue, 40);
+    setSliderValue(spacingSlider, spacingValue, 100);
+    setSliderValue(angleSlider, angleValue, -35);
+    if (jitterSlider) setSliderValue(jitterSlider, jitterValue, 40);
+
+    // スタイル: アナログ
+    styleBtns.forEach(b => b.classList.remove('active'));
+    const analogBtn = document.querySelector('.style-btn[data-style="analog"]');
+    if (analogBtn) {
+        analogBtn.classList.add('active');
+        currentStyle = 'analog';
+    }
+
+    // 色: 自動
+    colorBtns.forEach(b => b.classList.remove('active'));
+    const autoColorBtn = document.querySelector('.color-btn[data-color="auto"]');
+    if (autoColorBtn) {
+        autoColorBtn.classList.add('active');
+        currentColorMode = 'auto';
+    }
+
+    // フォント: 手書き
+    fontBtns.forEach(b => b.classList.remove('active'));
+    const handwriteBtn = document.querySelector('.font-btn[data-font="handwrite"]');
+    if (handwriteBtn) {
+        handwriteBtn.classList.add('active');
+        currentFont = 'handwrite';
+    }
+
+    // 三層ノイズ保護 ON
+    if (threeLayerNoiseCheckbox) {
+        threeLayerNoiseCheckbox.checked = true;
+        if (noiseControls) noiseControls.style.display = 'block';
+    }
+    if (lowFreqNoiseSlider) setSliderValue(lowFreqNoiseSlider, lowFreqNoiseValue, 10);
+    if (midFreqAngleSlider) setSliderValue(midFreqAngleSlider, midFreqAngleValue, 45);
+    if (midFreqStrengthSlider) setSliderValue(midFreqStrengthSlider, midFreqStrengthValue, 12);
+    if (highFreqNoiseSlider) setSliderValue(highFreqNoiseSlider, highFreqNoiseValue, 6);
+    if (noiseCorrelationSlider) setSliderValue(noiseCorrelationSlider, noiseCorrelationValue, 75);
+
+    // AI復元困難化フィルタ ON
+    if (irrecoverableFilterCheckbox) {
+        irrecoverableFilterCheckbox.checked = true;
+        if (irrecoverableControls) irrecoverableControls.style.display = 'block';
+    }
+    if (perlinNoiseSlider) setSliderValue(perlinNoiseSlider, perlinNoiseValue, 10);
+    if (blueNoiseSlider) setSliderValue(blueNoiseSlider, blueNoiseValue, 12);
+    if (directionalNoiseSlider) setSliderValue(directionalNoiseSlider, directionalNoiseValue, 8);
+    if (correlationFieldSlider) setSliderValue(correlationFieldSlider, correlationFieldValue, 60);
+
+    // Bタイプ不可視フィルタ ON
+    if (btypeFilterCheckbox) {
+        btypeFilterCheckbox.checked = true;
+        if (btypeControls) btypeControls.style.display = 'block';
+    }
+    if (phaseShiftSlider) setSliderValue(phaseShiftSlider, phaseShiftValue, 4);
+    if (lumaModSlider) setSliderValue(lumaModSlider, lumaModValue, 6);
+    if (bgNoiseSlider) setSliderValue(bgNoiseSlider, bgNoiseValue, 4);
+    if (btypeCorrelationSlider) setSliderValue(btypeCorrelationSlider, btypeCorrelationValue, 65);
+
+    // 仕上げ
+    if (vignetteSlider) setSliderValue(vignetteSlider, vignetteValue, 15);
+    if (textureSlider) setSliderValue(textureSlider, textureValue, 8);
+    if (integrationSlider) setSliderValue(integrationSlider, integrationValue, 20);
+
+    // 保存 & 再描画
+    saveSettings();
+    renderWatermark();
+
+    console.log('🏆 黄金設定を適用しました！');
+}
+
+// 初期設定に戻す
+function resetToDefaultPreset() {
+    // 基本設定
+    setSliderValue(opacitySlider, opacityValue, 70);
+    setSliderValue(fontSizeSlider, fontSizeValue, 48);
+    setSliderValue(spacingSlider, spacingValue, 80);
+    setSliderValue(angleSlider, angleValue, -30);
+    if (jitterSlider) setSliderValue(jitterSlider, jitterValue, 0);
+
+    // スタイル: 通常
+    styleBtns.forEach(b => b.classList.remove('active'));
+    const normalBtn = document.querySelector('.style-btn[data-style="normal"]');
+    if (normalBtn) {
+        normalBtn.classList.add('active');
+        currentStyle = 'normal';
+    }
+    if (halftoneOptions) halftoneOptions.style.display = 'none';
+
+    // 色: 白
+    colorBtns.forEach(b => b.classList.remove('active'));
+    const whiteBtn = document.querySelector('.color-btn[data-color="white"]');
+    if (whiteBtn) {
+        whiteBtn.classList.add('active');
+        currentColorMode = 'white';
+    }
+
+    // フォント: 通常
+    fontBtns.forEach(b => b.classList.remove('active'));
+    const normalFontBtn = document.querySelector('.font-btn[data-font="normal"]');
+    if (normalFontBtn) {
+        normalFontBtn.classList.add('active');
+        currentFont = 'normal';
+    }
+
+    // 三層ノイズ保護 OFF
+    if (threeLayerNoiseCheckbox) {
+        threeLayerNoiseCheckbox.checked = false;
+        if (noiseControls) noiseControls.style.display = 'none';
+    }
+
+    // AI復元困難化フィルタ OFF
+    if (irrecoverableFilterCheckbox) {
+        irrecoverableFilterCheckbox.checked = false;
+        if (irrecoverableControls) irrecoverableControls.style.display = 'none';
+    }
+
+    // Bタイプ不可視フィルタ OFF
+    if (btypeFilterCheckbox) {
+        btypeFilterCheckbox.checked = false;
+        if (btypeControls) btypeControls.style.display = 'none';
+    }
+
+    // 仕上げ
+    if (vignetteSlider) setSliderValue(vignetteSlider, vignetteValue, 0);
+    if (textureSlider) setSliderValue(textureSlider, textureValue, 0);
+    if (integrationSlider) setSliderValue(integrationSlider, integrationValue, 0);
+
+    // 保存 & 再描画
+    saveSettings();
+    renderWatermark();
+
+    console.log('🔄 初期設定に戻しました');
+}
+
+// スライダー値を設定するヘルパー
+function setSliderValue(slider, display, value) {
+    if (slider) {
+        slider.value = value;
+        if (display) display.textContent = value;
+    }
 }
 
 // =====================================================
