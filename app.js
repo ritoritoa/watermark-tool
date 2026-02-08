@@ -1186,12 +1186,14 @@ function getTextColor(x, y) {
     } else if (currentColorMode === 'black') {
         return 'rgba(0, 0, 0, 1)';
     } else if (currentColorMode === 'gradient') {
-        // 虹色モード: x+y の合計値で色を決定
-        // 間隔値に基づいて1サイクル（0-360度）
+        // 虹色モード: グリッドインデックスで色を決定
+        // 各ウォーターマークが並ぶグリッドの番号で色を変える
         const spacing = parseInt(spacingSlider?.value || 80);
-        // spacingピクセルごとに色が1回変わる（虹色1周）
-        const cycle = ((x + y) / spacing) * 60;  // 60度ずつ変化
-        const hue = ((cycle % 360) + 360) % 360;  // 負の値対策
+        const gridX = Math.floor((x + 10000) / spacing);  // 大きなオフセットで負の値を避ける
+        const gridY = Math.floor((y + 10000) / spacing);
+        // 対角線方向に色が変わるように
+        const index = gridX + gridY;
+        const hue = (index * 51) % 360;  // 51度ずつ（約7色で1周）
         return `hsl(${hue}, 85%, 55%)`;
     } else {
         // 自動モード - キャッシュを使って高速化

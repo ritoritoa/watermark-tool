@@ -1,4 +1,4 @@
-const CACHE_NAME = 'watermark-tool-v58-rainbow3';
+const CACHE_NAME = 'watermark-tool-v59-rainbow4';
 // console.log('🔥 CACHE VERSION: v50 - FORCE UPDATE MODE 🔥');
 const ASSETS = [
     './',
