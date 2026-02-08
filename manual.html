@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ウォーターマーク追加ツール 取扱説明書</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Sans JP', sans-serif;
+            line-height: 1.8;
+            color: #333;
+            background: #f8f9fa;
+            padding: 2rem;
+        }
+
+        .manual {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 3rem;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+            padding-bottom: 2rem;
+            border-bottom: 3px solid #6c5ce7;
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            color: #6c5ce7;
+            margin-bottom: 0.5rem;
+        }
+
+        .header .subtitle {
+            color: #666;
+            font-size: 1.1rem;
+        }
+
+        .header .version {
+            display: inline-block;
+            background: linear-gradient(135deg, #6c5ce7, #a855f7);
+            color: white;
+            padding: 0.3rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            margin-top: 1rem;
+        }
+
+        h2 {
+            color: #6c5ce7;
+            font-size: 1.4rem;
+            margin: 2.5rem 0 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid #e0e0e0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        h3 {
+            color: #333;
+            font-size: 1.1rem;
+            margin: 1.5rem 0 0.75rem;
+        }
+
+        p {
+            margin-bottom: 1rem;
+        }
+
+        .step-box {
+            background: #f0f0ff;
+            border-left: 4px solid #6c5ce7;
+            padding: 1rem 1.5rem;
+            margin: 1rem 0;
+            border-radius: 0 10px 10px 0;
+        }
+
+        .step-box h4 {
+            color: #6c5ce7;
+            margin-bottom: 0.5rem;
+        }
+
+        .tip-box {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 1rem 1.5rem;
+            margin: 1rem 0;
+            border-radius: 0 10px 10px 0;
+        }
+
+        .tip-box::before {
+            content: "💡 ";
+        }
+
+        .warning-box {
+            background: #ffe0e0;
+            border-left: 4px solid #dc3545;
+            padding: 1rem 1.5rem;
+            margin: 1rem 0;
+            border-radius: 0 10px 10px 0;
+        }
+
+        .warning-box::before {
+            content: "⚠️ ";
+        }
+
+        .golden-box {
+            background: linear-gradient(135deg, #fff9e6 0%, #fff3cd 100%);
+            border: 2px solid #f7b731;
+            padding: 1.5rem;
+            margin: 1rem 0;
+            border-radius: 15px;
+        }
+
+        .golden-box h4 {
+            color: #d68910;
+            margin-bottom: 0.5rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+        }
+
+        th,
+        td {
+            padding: 0.75rem;
+            text-align: left;
+            border: 1px solid #ddd;
+        }
+
+        th {
+            background: #6c5ce7;
+            color: white;
+        }
+
+        tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+
+        .emoji-list {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .emoji-list li {
+            padding: 0.5rem 0;
+            padding-left: 2rem;
+            position: relative;
+        }
+
+        .emoji-list li::before {
+            position: absolute;
+            left: 0;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 3rem;
+            padding-top: 2rem;
+            border-top: 2px solid #e0e0e0;
+            color: #666;
+        }
+
+        /* 印刷用スタイル */
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+
+            .manual {
+                box-shadow: none;
+                padding: 1rem;
+            }
+
+            .step-box,
+            .tip-box,
+            .warning-box,
+            .golden-box {
+                break-inside: avoid;
+            }
+
+            h2 {
+                break-after: avoid;
+            }
+        }
+
+        @page {
+            margin: 1.5cm;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="manual">
+        <div class="header">
+            <h1>🎨 ウォーターマーク追加ツール</h1>
+            <p class="subtitle">取扱説明書</p>
+            <span class="version">v54 - 2026年2月版</span>
+        </div>
+
+        <h2>📖 このツールについて</h2>
+        <p>
+            イラストや写真に透かし（ウォーターマーク）を追加して、著作権を保護するためのツールです。
+            AIによるウォーターマーク除去を困難にする保護機能も搭載しています。
+        </p>
+
+        <h2>🚀 基本的な使い方</h2>
+
+        <div class="step-box">
+            <h4>Step 1: 画像を読み込む</h4>
+            <p>ドロップエリアに画像をドラッグ＆ドロップするか、「ファイルを選択」ボタンをクリックして画像を選びます。</p>
+        </div>
+
+        <div class="step-box">
+            <h4>Step 2: ウォーターマークを設定</h4>
+            <p>テキスト欄にあなたのアカウント名や著作権表記を入力します。<br>
+                例: <code>@your_name</code> や <code>© 2026 YourName</code></p>
+        </div>
+
+        <div class="step-box">
+            <h4>Step 3: お好みで調整</h4>
+            <p>透明度、サイズ、角度などをスライダーで調整します。<br>
+                プレビューを見ながらリアルタイムで確認できます。</p>
+        </div>
+
+        <div class="step-box">
+            <h4>Step 4: ダウンロード</h4>
+            <p>「💾 ダウンロード」ボタンをクリックして、ウォーターマーク入りの画像を保存します。</p>
+        </div>
+
+        <h2>⚙️ 設定項目の解説</h2>
+
+        <h3>📝 基本設定</h3>
+        <table>
+            <tr>
+                <th>項目</th>
+                <th>説明</th>
+            </tr>
+            <tr>
+                <td>透明度</td>
+                <td>ウォーターマークの濃さ。低いと薄く、高いと濃くなります。</td>
+            </tr>
+            <tr>
+                <td>フォントサイズ</td>
+                <td>文字の大きさ。画像サイズに合わせて調整してください。</td>
+            </tr>
+            <tr>
+                <td>間隔</td>
+                <td>ウォーターマーク同士の距離。大きいとまばらに、小さいと密になります。</td>
+            </tr>
+            <tr>
+                <td>角度</td>
+                <td>ウォーターマークの傾き。斜めにすると見栄えが良くなります。</td>
+            </tr>
+            <tr>
+                <td>ゆらぎ</td>
+                <td>位置や角度をランダムにずらします。AIによる除去を困難にします。</td>
+            </tr>
+        </table>
+
+        <h3>🎨 スタイル</h3>
+        <table>
+            <tr>
+                <th>スタイル</th>
+                <th>特徴</th>
+            </tr>
+            <tr>
+                <td>通常</td>
+                <td>シンプルな塗りつぶし文字</td>
+            </tr>
+            <tr>
+                <td>中抜き</td>
+                <td>輪郭だけの文字（軽やかな印象）</td>
+            </tr>
+            <tr>
+                <td>ハーフトーン</td>
+                <td>ドットパターンで表現（レトロな雰囲気）</td>
+            </tr>
+            <tr>
+                <td>アナログ</td>
+                <td>手書き風のざらついた表現（AI除去に強い）</td>
+            </tr>
+        </table>
+
+        <h3>🎨 色</h3>
+        <table>
+            <tr>
+                <th>色</th>
+                <th>特徴</th>
+            </tr>
+            <tr>
+                <td>白</td>
+                <td>暗い画像向け</td>
+            </tr>
+            <tr>
+                <td>黒</td>
+                <td>明るい画像向け</td>
+            </tr>
+            <tr>
+                <td>自動</td>
+                <td>画像の明るさに応じて自動選択</td>
+            </tr>
+            <tr>
+                <td>虹色</td>
+                <td>グラデーション（ホログラム効果でAI除去に強い）</td>
+            </tr>
+        </table>
+
+        <h2>🏆 黄金設定（おすすめ）</h2>
+
+        <div class="golden-box">
+            <h4>🏆 黄金設定を適用</h4>
+            <p>
+                ボタンひとつで「見た目は綺麗だけど、加工されたら画質が落ちる」設定を適用できます。
+                AI除去対策に最適化された設定です。
+            </p>
+            <p><strong>適用される設定：</strong></p>
+            <ul>
+                <li>透明度20%、サイズ40、角度-35°、ゆらぎ40</li>
+                <li>スタイル: アナログ、フォント: 手書き</li>
+                <li>全ての保護フィルタON（最適値）</li>
+            </ul>
+        </div>
+
+        <div class="tip-box">
+            設定に迷ったら、まずは「🏆 黄金設定を適用」ボタンを押してみましょう！
+        </div>
+
+        <h2>🛡️ 保護フィルタ</h2>
+
+        <h3>三層ノイズ保護</h3>
+        <p>低周波・中域・高周波の3層ノイズを画像に埋め込みます。AIがウォーターマークを除去しようとすると、周辺の画素も壊れます。</p>
+
+        <h3>AI復元困難化フィルタ</h3>
+        <p>Perlinノイズ、Blue Noise、方向性ノイズを組み合わせて、AIの学習パターンを妨害します。</p>
+
+        <h3>Bタイプ不可視フィルタ</h3>
+        <p>輪郭をわずかにずらし、検出されにくい微細なノイズを加えます。肉眼では見えません。</p>
+
+        <h2>🔍 改ざん検出（Diff比較）</h2>
+
+        <p>画面上部の「Diff比較」タブから利用できます。</p>
+
+        <div class="step-box">
+            <h4>使い方</h4>
+            <ol>
+                <li><strong>Before</strong>: ウォーターマーク入りの原本画像を選択</li>
+                <li><strong>After</strong>: 加工が疑われる画像を選択</li>
+                <li>「差分を生成」ボタンをクリック</li>
+                <li>白く光る部分が、改変された箇所です</li>
+            </ol>
+        </div>
+
+        <h3>スライダーの調整</h3>
+        <table>
+            <tr>
+                <th>項目</th>
+                <th>説明</th>
+            </tr>
+            <tr>
+                <td>増幅 (Gain)</td>
+                <td>差分を目立たせます。高いほど微細な差も見えます。</td>
+            </tr>
+            <tr>
+                <td>閾値 (Threshold)</td>
+                <td>ノイズを無視します。JPEG圧縮のノイズを除去したい時は10-20に設定。</td>
+            </tr>
+        </table>
+
+        <h2>✨ 仕上げエフェクト</h2>
+        <table>
+            <tr>
+                <th>項目</th>
+                <th>効果</th>
+            </tr>
+            <tr>
+                <td>ビネット</td>
+                <td>画像の四隅を暗く/明るくします</td>
+            </tr>
+            <tr>
+                <td>テクスチャ</td>
+                <td>紙のような質感を追加します</td>
+            </tr>
+            <tr>
+                <td>統合度</td>
+                <td>ウォーターマークと画像の馴染み具合を調整</td>
+            </tr>
+        </table>
+
+        <h2>❓ よくある質問</h2>
+
+        <h3>Q: 設定が保存されない</h3>
+        <p>A: ブラウザのlocalStorageに保存されます。プライベートモードでは保存されません。</p>
+
+        <h3>Q: キャッシュが更新されない</h3>
+        <p>A: DevTools → Application → Service Workers → Unregister してからリロードしてください。</p>
+
+        <h3>Q: 同じ画像なのにDiff比較で差分が出る</h3>
+        <p>A: 正常です。v53以降で修正されています。同じファイルを選択すれば真っ黒（差分なし）になります。</p>
+
+        <div class="warning-box">
+            ウォーターマークは著作権侵害を完全に防ぐものではありません。万が一の無断転載に備えて、元データは必ず保管しておきましょう。
+        </div>
+
+        <div class="footer">
+            <p>📧 不具合や要望があれば作者までご連絡ください</p>
+            <p>Made with 💜 for creators</p>
+        </div>
+    </div>
+</body>
+
+</html>
