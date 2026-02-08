@@ -2465,28 +2465,6 @@ function renderHalftoneWatermark(text, startX, startY, endX, endY, textWidth, te
     }
 }
 
-function getTextColor(x, y) {
-    if (currentColorMode === 'white') {
-        return 'rgba(255, 255, 255, 1)';
-    } else if (currentColorMode === 'black') {
-        return 'rgba(0, 0, 0, 1)';
-    } else if (currentColorMode === 'gradient') {
-        // フォールバック（通常はループ内で処理されるため呼ばれないはずだが一応）
-        return 'rgba(255, 0, 128, 1)';
-    } else {
-        // 自動モード: 背景の明るさに応じて白か黒を選択
-        const centerX = canvas.width / 2;
-        const centerY = canvas.height / 2;
-        // 画面外参照エラー防止
-        const safeX = Math.max(0, Math.min(canvas.width - 1, Math.floor(centerX)));
-        const safeY = Math.max(0, Math.min(canvas.height - 1, Math.floor(centerY)));
-
-        const imageData = ctx.getImageData(safeX, safeY, 1, 1).data;
-        const brightness = (imageData[0] * 299 + imageData[1] * 587 + imageData[2] * 114) / 1000;
-        return brightness > 128 ? 'rgba(0, 0, 0, 1)' : 'rgba(255, 255, 255, 1)';
-    }
-}
-
 // =====================================================
 // 画像ダウンロード
 // =====================================================
