@@ -1182,7 +1182,12 @@ function getTextColor(x, y) {
     } else if (currentColorMode === 'black') {
         return 'rgba(0, 0, 0, 1)';
     } else if (currentColorMode === 'gradient') {
-        return 'rgba(255, 0, 128, 1)';
+        // 虹色モード: 位置に応じてHSL色相を変化させる
+        // 対角線方向にグラデーション
+        const maxDist = Math.sqrt(canvas.width * canvas.width + canvas.height * canvas.height);
+        const dist = Math.sqrt(x * x + y * y);
+        const hue = (dist / maxDist) * 360;
+        return `hsl(${hue}, 80%, 60%)`;
     } else {
         // 自動モード
         const centerX = canvas.width / 2;
