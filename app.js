@@ -1175,6 +1175,10 @@ function renderAnalogText(ctx, text, fontSize, startX, startY, endX, endY, textW
     }
 }
 
+// 自動モードの色キャッシュ（パフォーマンス最適化）
+let cachedAutoColor = null;
+let lastCanvasState = null;
+
 // テキスト色を取得
 function getTextColor(x, y) {
     if (currentColorMode === 'white') {
@@ -1182,22 +1186,31 @@ function getTextColor(x, y) {
     } else if (currentColorMode === 'black') {
         return 'rgba(0, 0, 0, 1)';
     } else if (currentColorMode === 'gradient') {
-        // 虹色モード: 位置に応じてHSL色相を変化させる
-        // 対角線方向にグラデーション
-        const maxDist = Math.sqrt(canvas.width * canvas.width + canvas.height * canvas.height);
-        const dist = Math.sqrt(x * x + y * y);
-        const hue = (dist / maxDist) * 360;
-        return `hsl(${hue}, 80%, 60%)`;
+        // 虹色モード: x+y の合計値で色を決定
+        // 間隔値に基づいて1サイクル（0-360度）
+        const spacing = parseInt(spacingSlider?.value || 80);
+        // spacingピクセルごとに色が1回変わる（虹色1周）
+        const cycle = ((x + y) / spacing) * 60;  // 60度ずつ変化
+        const hue = ((cycle % 360) + 360) % 360;  // 負の値対策
+        return `hsl(${hue}, 85%, 55%)`;
     } else {
-        // 自動モード
-        const centerX = canvas.width / 2;
-        const centerY = canvas.height / 2;
-        const safeX = Math.max(0, Math.min(canvas.width - 1, Math.floor(centerX)));
-        const safeY = Math.max(0, Math.min(canvas.height - 1, Math.floor(centerY)));
+        // 自動モード - キャッシュを使って高速化
+        const currentState = `${canvas.width}x${canvas.height}`;
 
-        const imageData = ctx.getImageData(safeX, safeY, 1, 1).data;
-        const brightness = (imageData[0] * 299 + imageData[1] * 587 + imageData[2] * 114) / 1000;
-        return brightness > 128 ? 'rgba(0, 0, 0, 1)' : 'rgba(255, 255, 255, 1)';
+        if (cachedAutoColor === null || lastCanvasState !== currentState) {
+            // 最初の呼び出し時のみgetImageDataを実行
+            const centerX = Math.floor(canvas.width / 2);
+            const centerY = Math.floor(canvas.height / 2);
+            const safeX = Math.max(0, Math.min(canvas.width - 1, centerX));
+            const safeY = Math.max(0, Math.min(canvas.height - 1, centerY));
+
+            const imageData = ctx.getImageData(safeX, safeY, 1, 1).data;
+            const brightness = (imageData[0] * 299 + imageData[1] * 587 + imageData[2] * 114) / 1000;
+            cachedAutoColor = brightness > 128 ? 'rgba(0, 0, 0, 1)' : 'rgba(255, 255, 255, 1)';
+            lastCanvasState = currentState;
+        }
+
+        return cachedAutoColor;
     }
 }
 
