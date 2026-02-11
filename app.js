@@ -4,7 +4,19 @@
  */
 
 // ビルドID（改ざん検出モードで使用）
-const BUILD_ID = 'v2026-02-07';
+const BUILD_ID = 'v63-debounce';
+
+// デバウンス用タイマー（スライダー操作時の連続レンダリングを抑制）
+let _pendingRender = null;
+const RENDER_DEBOUNCE_MS = 250;
+
+function scheduleRender() {
+    if (_pendingRender) clearTimeout(_pendingRender);
+    _pendingRender = setTimeout(() => {
+        _pendingRender = null;
+        renderWatermark(false);
+    }, RENDER_DEBOUNCE_MS);
+}
 
 // DOM要素の参照
 const dropZone = document.getElementById('dropZone');
@@ -246,7 +258,7 @@ function applyGoldenPreset() {
 
     // 保存 & 再描画
     saveSettings();
-    renderWatermark();
+    scheduleRender();
 
     console.log('🏆 黄金設定を適用しました！');
 }
@@ -310,7 +322,7 @@ function resetToDefaultPreset() {
 
     // 保存 & 再描画
     saveSettings();
-    renderWatermark();
+    scheduleRender();
 
     console.log('🔄 初期設定に戻しました');
 }
@@ -621,7 +633,7 @@ function loadImage(file) {
         img.onload = () => {
             originalImage = img;
             showPreview();
-            renderWatermark();
+            scheduleRender();
         };
         img.src = e.target.result;
     };
@@ -650,28 +662,28 @@ function setupControls() {
     // テキスト入力（画像なしでも設定保存する）
     watermarkText.addEventListener('input', () => {
         saveSettings();
-        renderWatermark();
+        scheduleRender();
     });
 
     // スライダー
     opacitySlider.addEventListener('input', () => {
         opacityValue.textContent = opacitySlider.value;
-        renderWatermark();
+        scheduleRender();
     });
 
     fontSizeSlider.addEventListener('input', () => {
         fontSizeValue.textContent = fontSizeSlider.value;
-        renderWatermark();
+        scheduleRender();
     });
 
     angleSlider.addEventListener('input', () => {
         angleValue.textContent = angleSlider.value;
-        renderWatermark();
+        scheduleRender();
     });
 
     spacingSlider.addEventListener('input', () => {
         spacingValue.textContent = spacingSlider.value;
-        renderWatermark();
+        scheduleRender();
     });
 }
 
@@ -681,7 +693,7 @@ function setupColorButtons() {
             colorBtns.forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             currentColorMode = btn.dataset.color;
-            renderWatermark();
+            scheduleRender();
         });
     });
 }
@@ -700,14 +712,14 @@ function setupStyleButtons() {
                 halftoneOptions.style.display = 'none';
             }
 
-            renderWatermark();
+            scheduleRender();
         });
     });
 
     // ドットサイズスライダー
     dotSizeSlider.addEventListener('input', () => {
         dotSizeValue.textContent = dotSizeSlider.value;
-        renderWatermark();
+        scheduleRender();
     });
 }
 
@@ -717,7 +729,7 @@ function setupFontButtons() {
             fontBtns.forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             currentFont = btn.dataset.font;
-            renderWatermark();
+            scheduleRender();
         });
     });
 }
@@ -742,14 +754,14 @@ function setupModeButtons() {
                 imageWatermarkSection.style.display = 'none';
             }
 
-            renderWatermark();
+            scheduleRender();
         });
     });
 
     // スケールスライダー
     wmScaleSlider.addEventListener('input', () => {
         wmScaleValue.textContent = wmScaleSlider.value;
-        renderWatermark();
+        scheduleRender();
     });
 }
 
@@ -757,24 +769,24 @@ function setupEffectControls() {
     // 仕上げエフェクトスライダー
     vignetteSlider.addEventListener('input', () => {
         vignetteValue.textContent = vignetteSlider.value;
-        renderWatermark();
+        scheduleRender();
     });
 
     textureSlider.addEventListener('input', () => {
         textureValue.textContent = textureSlider.value;
-        renderWatermark();
+        scheduleRender();
     });
 
     integrationSlider.addEventListener('input', () => {
         integrationValue.textContent = integrationSlider.value;
-        renderWatermark();
+        scheduleRender();
     });
 
     // ゆらぎスライダー
     if (jitterSlider) {
         jitterSlider.addEventListener('input', () => {
             if (jitterValue) jitterValue.textContent = jitterSlider.value;
-            renderWatermark();
+            scheduleRender();
         });
     }
 
@@ -783,7 +795,7 @@ function setupEffectControls() {
         // チェック時のみスライダーを表示
         const control = document.getElementById('jammerStrengthControl');
         control.style.display = noiseProtection.checked ? 'flex' : 'none';
-        renderWatermark();
+        scheduleRender();
     });
 
     const jammerStrengthSlider = document.getElementById('jammerStrength');
@@ -791,7 +803,7 @@ function setupEffectControls() {
 
     jammerStrengthSlider.addEventListener('input', () => {
         jammerStrengthValue.textContent = jammerStrengthSlider.value;
-        renderWatermark();
+        scheduleRender();
     });
 
     // ビネット色選択ボタン
@@ -801,21 +813,21 @@ function setupEffectControls() {
             vignetteBtns.forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             currentVignetteColor = btn.dataset.vignetteColor;
-            renderWatermark();
+            scheduleRender();
         });
     });
 
     // ビネットサイズスライダー
     vignetteSizeSlider.addEventListener('input', () => {
         vignetteSizeValue.textContent = vignetteSizeSlider.value;
-        renderWatermark();
+        scheduleRender();
     });
 
     // ===== 三層ノイズ保護 =====
     if (threeLayerNoiseCheckbox && noiseControls) {
         threeLayerNoiseCheckbox.addEventListener('change', () => {
             noiseControls.style.display = threeLayerNoiseCheckbox.checked ? 'block' : 'none';
-            renderWatermark();
+            scheduleRender();
         });
     }
 
@@ -823,7 +835,7 @@ function setupEffectControls() {
     if (lowFreqNoiseSlider) {
         lowFreqNoiseSlider.addEventListener('input', () => {
             lowFreqNoiseValue.textContent = lowFreqNoiseSlider.value;
-            renderWatermark();
+            scheduleRender();
         });
     }
 
@@ -831,7 +843,7 @@ function setupEffectControls() {
     if (midFreqAngleSlider) {
         midFreqAngleSlider.addEventListener('input', () => {
             midFreqAngleValue.textContent = midFreqAngleSlider.value;
-            renderWatermark();
+            scheduleRender();
         });
     }
 
@@ -839,7 +851,7 @@ function setupEffectControls() {
     if (midFreqStrengthSlider) {
         midFreqStrengthSlider.addEventListener('input', () => {
             midFreqStrengthValue.textContent = midFreqStrengthSlider.value;
-            renderWatermark();
+            scheduleRender();
         });
     }
 
@@ -847,7 +859,7 @@ function setupEffectControls() {
     if (highFreqNoiseSlider) {
         highFreqNoiseSlider.addEventListener('input', () => {
             highFreqNoiseValue.textContent = highFreqNoiseSlider.value;
-            renderWatermark();
+            scheduleRender();
         });
     }
 
@@ -855,7 +867,7 @@ function setupEffectControls() {
     if (noiseCorrelationSlider) {
         noiseCorrelationSlider.addEventListener('input', () => {
             noiseCorrelationValue.textContent = noiseCorrelationSlider.value;
-            renderWatermark();
+            scheduleRender();
         });
     }
 
@@ -865,7 +877,7 @@ function setupEffectControls() {
             if (irrecoverableControls) {
                 irrecoverableControls.style.display = irrecoverableFilterCheckbox.checked ? 'block' : 'none';
             }
-            renderWatermark();
+            scheduleRender();
         });
     }
 
@@ -873,7 +885,7 @@ function setupEffectControls() {
     if (perlinNoiseSlider) {
         perlinNoiseSlider.addEventListener('input', () => {
             perlinNoiseValue.textContent = perlinNoiseSlider.value;
-            renderWatermark();
+            scheduleRender();
         });
     }
 
@@ -881,7 +893,7 @@ function setupEffectControls() {
     if (blueNoiseSlider) {
         blueNoiseSlider.addEventListener('input', () => {
             blueNoiseValue.textContent = blueNoiseSlider.value;
-            renderWatermark();
+            scheduleRender();
         });
     }
 
@@ -889,7 +901,7 @@ function setupEffectControls() {
     if (directionalNoiseSlider) {
         directionalNoiseSlider.addEventListener('input', () => {
             directionalNoiseValue.textContent = directionalNoiseSlider.value;
-            renderWatermark();
+            scheduleRender();
         });
     }
 
@@ -897,7 +909,7 @@ function setupEffectControls() {
     if (correlationFieldSlider) {
         correlationFieldSlider.addEventListener('input', () => {
             correlationFieldValue.textContent = correlationFieldSlider.value;
-            renderWatermark();
+            scheduleRender();
         });
     }
 
@@ -907,7 +919,7 @@ function setupEffectControls() {
             if (btypeControls) {
                 btypeControls.style.display = btypeFilterCheckbox.checked ? 'block' : 'none';
             }
-            renderWatermark();
+            scheduleRender();
         });
     }
 
@@ -915,7 +927,7 @@ function setupEffectControls() {
     if (phaseShiftSlider) {
         phaseShiftSlider.addEventListener('input', () => {
             phaseShiftValue.textContent = phaseShiftSlider.value;
-            renderWatermark();
+            scheduleRender();
         });
     }
 
@@ -923,7 +935,7 @@ function setupEffectControls() {
     if (lumaModSlider) {
         lumaModSlider.addEventListener('input', () => {
             lumaModValue.textContent = lumaModSlider.value;
-            renderWatermark();
+            scheduleRender();
         });
     }
 
@@ -931,7 +943,7 @@ function setupEffectControls() {
     if (bgNoiseSlider) {
         bgNoiseSlider.addEventListener('input', () => {
             bgNoiseValue.textContent = bgNoiseSlider.value;
-            renderWatermark();
+            scheduleRender();
         });
     }
 
@@ -939,7 +951,7 @@ function setupEffectControls() {
     if (btypeCorrelationSlider) {
         btypeCorrelationSlider.addEventListener('input', () => {
             btypeCorrelationValue.textContent = btypeCorrelationSlider.value;
-            renderWatermark();
+            scheduleRender();
         });
     }
 }
@@ -1263,7 +1275,7 @@ function setupBlendButtons() {
             blendBtns.forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             currentBlendMode = btn.dataset.blend;
-            renderWatermark();
+            scheduleRender();
         });
     });
 }
@@ -1282,7 +1294,7 @@ function setupWatermarkImageUpload() {
                         <img src="${event.target.result}" alt="ウォーターマーク画像">
                         <span class="preview-label">✓ 画像を読み込みました</span>
                     `;
-                    renderWatermark();
+                    scheduleRender();
                 };
                 img.src = event.target.result;
             };
@@ -1294,31 +1306,31 @@ function setupWatermarkImageUpload() {
     if (imgOpacitySlider) {
         imgOpacitySlider.addEventListener('input', () => {
             imgOpacityValue.textContent = imgOpacitySlider.value;
-            renderWatermark();
+            scheduleRender();
         });
     }
     if (imgAngleSlider) {
         imgAngleSlider.addEventListener('input', () => {
             imgAngleValue.textContent = imgAngleSlider.value;
-            renderWatermark();
+            scheduleRender();
         });
     }
     if (imgSpacingSlider) {
         imgSpacingSlider.addEventListener('input', () => {
             imgSpacingValue.textContent = imgSpacingSlider.value;
-            renderWatermark();
+            scheduleRender();
         });
     }
     if (imgJitterSlider) {
         imgJitterSlider.addEventListener('input', () => {
             imgJitterValue.textContent = imgJitterSlider.value;
-            renderWatermark();
+            scheduleRender();
         });
     }
     if (imgScaleSlider) {
         imgScaleSlider.addEventListener('input', () => {
             imgScaleValue.textContent = imgScaleSlider.value;
-            renderWatermark();
+            scheduleRender();
         });
     }
 
@@ -1328,7 +1340,7 @@ function setupWatermarkImageUpload() {
             imgBlendBtns.forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             currentImgBlendMode = btn.dataset.imgBlend;
-            renderWatermark();
+            scheduleRender();
         });
     });
 }
@@ -2019,7 +2031,9 @@ function stampDetectionLabel(ctx, w, h) {
     ctx.shadowBlur = 4;
 
     // 右下に配置
-    ctx.fillText(`検出用レイヤーを含む (${BUILD_ID})`, w - 12, h - 10);
+    const now = new Date();
+    const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    ctx.fillText(`検出用レイヤーを含む (${dateStr})`, w - 12, h - 10);
     ctx.restore();
 }
 
