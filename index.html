@@ -157,6 +157,25 @@
                                     <input type="range" id="spotY" min="0" max="100" value="50">
                                 </div>
                             </div>
+                            <div class="spot-trap-controls">
+                                <label class="protection-label">
+                                    <input type="checkbox" id="spotTrapEnabled">
+                                    <span>ワンポイント連動ノイズ</span>
+                                </label>
+                                <div class="control-group">
+                                    <label for="spotTrapStrength">破壊トラップ強度: <span id="spotTrapStrengthValue">45</span>%</label>
+                                    <input type="range" id="spotTrapStrength" min="0" max="100" value="45">
+                                </div>
+                                <div class="control-group">
+                                    <label for="spotTrapSpread">波及範囲: <span id="spotTrapSpreadValue">85</span>%</label>
+                                    <input type="range" id="spotTrapSpread" min="10" max="100" value="85">
+                                </div>
+                                <div class="control-group">
+                                    <label for="spotTrapVisibility">可視度: <span id="spotTrapVisibilityValue">35</span>%</label>
+                                    <input type="range" id="spotTrapVisibility" min="0" max="100" value="35">
+                                </div>
+                                <p class="slider-hint">ワンポイントの位置を種にして、全体へ薄い相関ノイズを織り込みます。</p>
+                            </div>
                         </div>
                     </div>
 
@@ -472,7 +491,7 @@
         </footer>
     </div>
 
-    <script src="app.js?v=65-spot-image"></script>
+    <script src="app.js?v=67-spot-trap"></script>
 </body>
 
 </html>

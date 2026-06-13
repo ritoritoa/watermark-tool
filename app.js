@@ -4,7 +4,7 @@
  */
 
 // ビルドID（改ざん検出モードで使用）
-const BUILD_ID = 'v65-spot-image';
+const BUILD_ID = 'v67-spot-trap';
 
 // デバウンス用タイマー（スライダー操作時の連続レンダリングを抑制）
 let _pendingRender = null;
@@ -79,6 +79,13 @@ const spotXSlider = document.getElementById('spotX');
 const spotXValue = document.getElementById('spotXValue');
 const spotYSlider = document.getElementById('spotY');
 const spotYValue = document.getElementById('spotYValue');
+const spotTrapEnabled = document.getElementById('spotTrapEnabled');
+const spotTrapStrengthSlider = document.getElementById('spotTrapStrength');
+const spotTrapStrengthValue = document.getElementById('spotTrapStrengthValue');
+const spotTrapSpreadSlider = document.getElementById('spotTrapSpread');
+const spotTrapSpreadValue = document.getElementById('spotTrapSpreadValue');
+const spotTrapVisibilitySlider = document.getElementById('spotTrapVisibility');
+const spotTrapVisibilityValue = document.getElementById('spotTrapVisibilityValue');
 
 // 値表示要素
 const opacityValue = document.getElementById('opacityValue');
@@ -229,11 +236,16 @@ function applyGoldenPreset() {
 
     // フォント: 手書き
     fontBtns.forEach(b => b.classList.remove('active'));
-    const handwriteBtn = document.querySelector('.font-btn[data-font="handwrite"]');
-    if (handwriteBtn) {
-        handwriteBtn.classList.add('active');
-        currentFont = 'handwrite';
+    const dancingBtn = document.querySelector('.font-btn[data-font="dancing"]');
+    if (dancingBtn) {
+        dancingBtn.classList.add('active');
+        currentFont = 'dancing';
     }
+
+    blendBtns.forEach(b => b.classList.toggle('active', b.dataset.blend === 'source-over'));
+    currentBlendMode = 'source-over';
+    imgBlendBtns.forEach(b => b.classList.toggle('active', b.dataset.imgBlend === 'source-over'));
+    currentImgBlendMode = 'source-over';
 
     // 三層ノイズ保護 ON
     if (threeLayerNoiseCheckbox) {
@@ -257,9 +269,10 @@ function applyGoldenPreset() {
     if (correlationFieldSlider) setSliderValue(correlationFieldSlider, correlationFieldValue, 60);
 
     // Bタイプ不可視フィルタ ON
+    // B-type filter is specialized; keep it off in the general preset.
     if (btypeFilterCheckbox) {
-        btypeFilterCheckbox.checked = true;
-        if (btypeControls) btypeControls.style.display = 'block';
+        btypeFilterCheckbox.checked = false;
+        if (btypeControls) btypeControls.style.display = 'none';
     }
     if (phaseShiftSlider) setSliderValue(phaseShiftSlider, phaseShiftValue, 4);
     if (lumaModSlider) setSliderValue(lumaModSlider, lumaModValue, 6);
@@ -312,6 +325,17 @@ function resetToDefaultPreset() {
         currentFont = 'normal';
     }
 
+    blendBtns.forEach(b => b.classList.toggle('active', b.dataset.blend === 'source-over'));
+    currentBlendMode = 'source-over';
+    imgBlendBtns.forEach(b => b.classList.toggle('active', b.dataset.imgBlend === 'source-over'));
+    currentImgBlendMode = 'source-over';
+    modeBtns.forEach(b => b.classList.toggle('active', b.dataset.mode === 'text'));
+    currentMode = 'text';
+    if (textWatermarkSection && imageWatermarkSection) {
+        textWatermarkSection.style.display = 'block';
+        imageWatermarkSection.style.display = 'none';
+    }
+
     // 三層ノイズ保護 OFF
     if (threeLayerNoiseCheckbox) {
         threeLayerNoiseCheckbox.checked = false;
@@ -339,6 +363,10 @@ function resetToDefaultPreset() {
     setSliderValue(spotScaleSlider, spotScaleValue, 35);
     setSliderValue(spotXSlider, spotXValue, 50);
     setSliderValue(spotYSlider, spotYValue, 50);
+    if (spotTrapEnabled) spotTrapEnabled.checked = false;
+    setSliderValue(spotTrapStrengthSlider, spotTrapStrengthValue, 45);
+    setSliderValue(spotTrapSpreadSlider, spotTrapSpreadValue, 85);
+    setSliderValue(spotTrapVisibilitySlider, spotTrapVisibilityValue, 35);
 
     // 保存 & 再描画
     saveSettings();
@@ -390,6 +418,10 @@ function saveSettings() {
         spotScale: spotScaleSlider?.value,
         spotX: spotXSlider?.value,
         spotY: spotYSlider?.value,
+        spotTrapEnabled: spotTrapEnabled?.checked,
+        spotTrapStrength: spotTrapStrengthSlider?.value,
+        spotTrapSpread: spotTrapSpreadSlider?.value,
+        spotTrapVisibility: spotTrapVisibilitySlider?.value,
 
         // 三層ノイズ
         threeLayerNoise: threeLayerNoiseCheckbox?.checked,
@@ -469,8 +501,14 @@ function loadSettings() {
         restoreSlider(spotScaleSlider, spotScaleValue, settings.spotScale);
         restoreSlider(spotXSlider, spotXValue, settings.spotX);
         restoreSlider(spotYSlider, spotYValue, settings.spotY);
+        restoreSlider(spotTrapStrengthSlider, spotTrapStrengthValue, settings.spotTrapStrength);
+        restoreSlider(spotTrapSpreadSlider, spotTrapSpreadValue, settings.spotTrapSpread);
+        restoreSlider(spotTrapVisibilitySlider, spotTrapVisibilityValue, settings.spotTrapVisibility);
         if (spotImageEnabled && settings.spotImageEnabled !== undefined) {
             spotImageEnabled.checked = settings.spotImageEnabled;
+        }
+        if (spotTrapEnabled && settings.spotTrapEnabled !== undefined) {
+            spotTrapEnabled.checked = settings.spotTrapEnabled;
         }
 
         // 三層ノイズ
@@ -1411,12 +1449,21 @@ function setupSpotImageControls() {
             scheduleRender();
         });
     }
+    if (spotTrapEnabled) {
+        spotTrapEnabled.addEventListener('change', () => {
+            saveSettings();
+            scheduleRender();
+        });
+    }
 
     const spotSliders = [
         [spotOpacitySlider, spotOpacityValue],
         [spotScaleSlider, spotScaleValue],
         [spotXSlider, spotXValue],
-        [spotYSlider, spotYValue]
+        [spotYSlider, spotYValue],
+        [spotTrapStrengthSlider, spotTrapStrengthValue],
+        [spotTrapSpreadSlider, spotTrapSpreadValue],
+        [spotTrapVisibilitySlider, spotTrapVisibilityValue]
     ];
 
     spotSliders.forEach(([slider, display]) => {
@@ -1471,6 +1518,8 @@ function renderWatermark(forDownload = false) {
     canvas.width = originalImage.width;
     canvas.height = originalImage.height;
     ctx.drawImage(originalImage, 0, 0);
+    cachedAutoColor = null;
+    lastCanvasState = null;
 
     // 2. ウォーターマーク専用のレイヤー（オフスクリーンキャンバス）を作成
     const wmCanvas = document.createElement('canvas');
@@ -1527,8 +1576,10 @@ function renderWatermark(forDownload = false) {
             addNoiseProtectionToLayer(textCtx, textCanvas.width, textCanvas.height);
         }
 
-        // Blend the text layer into the underlying image before compositing.
-        applyTextIntegrationToLayer(textCtx, textCanvas.width, textCanvas.height, integrationStrength);
+        const textIntegrationStrength = currentBlendMode === 'overlay'
+            ? Math.max(integrationStrength, 35)
+            : integrationStrength;
+        applyTextIntegrationToLayer(textCtx, textCanvas.width, textCanvas.height, textIntegrationStrength);
     }
 
     // === 画像透かしの描画（画像専用キャンバス） ===
@@ -1545,13 +1596,16 @@ function renderWatermark(forDownload = false) {
 
         imgCtx.globalAlpha = 1.0;
         renderImageWatermarkToLayer(imgCtx, imgSpacing, imgScale, imgAngle, imgJitter);
+        if (currentImgBlendMode === 'overlay') {
+            applyTextIntegrationToLayer(imgCtx, imgCanvas.width, imgCanvas.height, 30);
+        }
     }
 
     // 4. それぞれのレイヤーを個別の透明度・合成モードで合成
 
     // テキストレイヤーを合成（テキスト透明度・テキスト合成モード）
     if (shouldRenderText) {
-        ctx.globalCompositeOperation = currentBlendMode;
+        ctx.globalCompositeOperation = getReadableCompositeOperation(currentBlendMode);
         const rawOpacity = parseInt(opacitySlider.value);
 
         if (rawOpacity > 100) {
@@ -1571,13 +1625,14 @@ function renderWatermark(forDownload = false) {
 
     // 画像レイヤーを合成（画像専用透明度・画像専用合成モード）
     if (shouldRenderImage && watermarkImage) {
-        ctx.globalCompositeOperation = currentImgBlendMode;
+        ctx.globalCompositeOperation = getReadableCompositeOperation(currentImgBlendMode);
         const imgOpacity = imgOpacitySlider ? parseInt(imgOpacitySlider.value) / 100 : 0.7;
         ctx.globalAlpha = imgOpacity;
         ctx.drawImage(imgCanvas, 0, 0);
     }
 
     renderSpotImage();
+    renderSpotTrapNoise();
 
     // 合成設定をリセット
     ctx.globalAlpha = 1;
@@ -1789,6 +1844,128 @@ function renderSpotImage() {
     ctx.restore();
 }
 
+function seededUnit(seed) {
+    const value = Math.sin(seed) * 43758.5453123;
+    return value - Math.floor(value);
+}
+
+function renderSpotTrapNoise() {
+    if (!spotImage || !spotImageEnabled || !spotImageEnabled.checked) return;
+    if (!spotTrapEnabled || !spotTrapEnabled.checked) return;
+
+    const strength = spotTrapStrengthSlider ? parseInt(spotTrapStrengthSlider.value) : 45;
+    const spread = spotTrapSpreadSlider ? parseInt(spotTrapSpreadSlider.value) : 85;
+    const visibility = spotTrapVisibilitySlider ? parseInt(spotTrapVisibilitySlider.value) : 35;
+    if (strength <= 0 || visibility <= 0) return;
+
+    const strengthNorm = Math.min(1, Math.max(0, strength / 100));
+    const spreadNorm = Math.min(1, Math.max(0.1, spread / 100));
+    const visibilityNorm = Math.min(1, Math.max(0, visibility / 100));
+    const scalePercent = spotScaleSlider ? parseInt(spotScaleSlider.value) : 35;
+    const centerX = canvas.width * ((spotXSlider ? parseInt(spotXSlider.value) : 50) / 100);
+    const centerY = canvas.height * ((spotYSlider ? parseInt(spotYSlider.value) : 50) / 100);
+    const spotWidth = canvas.width * (scalePercent / 100);
+    const maxDim = Math.max(canvas.width, canvas.height);
+    const seed = Math.floor(centerX * 13 + centerY * 17 + spotWidth * 19 + spotImage.width * 23 + spotImage.height * 29);
+
+    const trapCanvas = document.createElement('canvas');
+    trapCanvas.width = canvas.width;
+    trapCanvas.height = canvas.height;
+    const trapCtx = trapCanvas.getContext('2d');
+
+    const patternCanvas = document.createElement('canvas');
+    patternCanvas.width = 128;
+    patternCanvas.height = 128;
+    const patternCtx = patternCanvas.getContext('2d');
+    const imageData = patternCtx.createImageData(128, 128);
+    const data = imageData.data;
+
+    for (let y = 0; y < 128; y++) {
+        for (let x = 0; x < 128; x++) {
+            const idx = (y * 128 + x) * 4;
+            const n = seededUnit(seed + x * 12.9898 + y * 78.233);
+            const wave = Math.sin((x - y) * 0.19 + seed * 0.017) * 0.5 + 0.5;
+            const signed = (n * 0.72 + wave * 0.28 - 0.5) * 2;
+            const val = Math.max(0, Math.min(255, 128 + signed * 95));
+            data[idx] = val;
+            data[idx + 1] = 255 - val * 0.35;
+            data[idx + 2] = 128 - signed * 55;
+            data[idx + 3] = 150;
+        }
+    }
+    patternCtx.putImageData(imageData, 0, 0);
+
+    const pattern = trapCtx.createPattern(patternCanvas, 'repeat');
+    trapCtx.save();
+    trapCtx.translate(centerX % 128, centerY % 128);
+    trapCtx.fillStyle = pattern;
+    trapCtx.fillRect(-128, -128, canvas.width + 256, canvas.height + 256);
+    trapCtx.restore();
+
+    const reach = maxDim * (0.2 + spreadNorm * 0.95);
+    const threadCount = Math.floor(28 + 120 * strengthNorm * spreadNorm);
+    trapCtx.lineCap = 'round';
+    trapCtx.lineJoin = 'round';
+
+    for (let i = 0; i < threadCount; i++) {
+        const r1 = seededUnit(seed + i * 31.7);
+        const r2 = seededUnit(seed + i * 53.1);
+        const r3 = seededUnit(seed + i * 97.9);
+        const angle = r1 * Math.PI * 2;
+        const startRadius = spotWidth * (0.15 + r2 * 0.35);
+        const length = reach * (0.18 + r3 * 0.82);
+        const bend = (seededUnit(seed + i * 11.3) - 0.5) * Math.PI * 0.65;
+        const x0 = centerX + Math.cos(angle) * startRadius;
+        const y0 = centerY + Math.sin(angle) * startRadius;
+        const x1 = centerX + Math.cos(angle + bend) * length;
+        const y1 = centerY + Math.sin(angle + bend) * length;
+        const cx = centerX + Math.cos(angle + bend * 0.5) * length * 0.48;
+        const cy = centerY + Math.sin(angle + bend * 0.5) * length * 0.48;
+        const alpha = (0.025 + r2 * 0.05) * strengthNorm * visibilityNorm;
+        const bright = i % 2 === 0 ? 255 : 0;
+
+        trapCtx.beginPath();
+        trapCtx.moveTo(x0, y0);
+        trapCtx.quadraticCurveTo(cx, cy, x1, y1);
+        trapCtx.strokeStyle = `rgba(${bright}, ${bright}, ${bright}, ${alpha})`;
+        trapCtx.lineWidth = 0.35 + r3 * 1.4 * strengthNorm;
+        trapCtx.stroke();
+    }
+
+    const particleCount = Math.floor(400 + 2600 * strengthNorm * spreadNorm);
+    for (let i = 0; i < particleCount; i++) {
+        const angle = seededUnit(seed + i * 5.19) * Math.PI * 2;
+        const radius = reach * Math.sqrt(seededUnit(seed + i * 7.91));
+        const x = centerX + Math.cos(angle) * radius;
+        const y = centerY + Math.sin(angle) * radius;
+        if (x < 0 || x >= canvas.width || y < 0 || y >= canvas.height) continue;
+        const v = seededUnit(seed + i * 13.37) > 0.5 ? 255 : 0;
+        trapCtx.fillStyle = `rgba(${v}, ${v}, ${v}, ${0.025 * strengthNorm * visibilityNorm})`;
+        trapCtx.fillRect(x, y, 1, 1);
+    }
+
+    ctx.save();
+    ctx.globalCompositeOperation = 'overlay';
+    ctx.globalAlpha = Math.min(0.28, 0.04 + strengthNorm * visibilityNorm * 0.22);
+    ctx.drawImage(trapCanvas, 0, 0);
+    ctx.restore();
+}
+
+function getReadableCompositeOperation(mode) {
+    return mode === 'overlay' ? 'source-over' : mode;
+}
+
+function getReadableTextStroke(colorMode, fillStyle) {
+    if (colorMode === 'black') return 'rgba(255, 255, 255, 0.32)';
+    if (colorMode === 'white') return 'rgba(0, 0, 0, 0.32)';
+    if (colorMode === 'gradient') return 'rgba(0, 0, 0, 0.24)';
+
+    const fill = String(fillStyle);
+    return fill.includes('0, 0, 0')
+        ? 'rgba(255, 255, 255, 0.32)'
+        : 'rgba(0, 0, 0, 0.32)';
+}
+
 // Text integration: soften text pixels toward the underlying image.
 function applyTextIntegrationToLayer(targetCtx, width, height, strength) {
     if (!strength || strength <= 0) return;
@@ -1807,8 +1984,8 @@ function applyTextIntegrationToLayer(targetCtx, width, height, strength) {
         const bgB = baseData[i + 2];
         const grain = Math.sin(i * 12.9898) * 43758.5453;
         const grainUnit = grain - Math.floor(grain) - 0.5;
-        const alphaScale = 1 - amount * 0.08 + grainUnit * amount * 0.06;
-        const colorMix = amount * 0.22;
+        const alphaScale = 1 + grainUnit * amount * 0.03;
+        const colorMix = amount * 0.1;
 
         textData[i] = textData[i] * (1 - colorMix) + bgR * colorMix;
         textData[i + 1] = textData[i + 1] * (1 - colorMix) + bgG * colorMix;
@@ -2512,7 +2689,7 @@ function renderTextWatermarkToLayer(targetCtx, spacing, scale, angle, jitterStre
                 if (colorModeToUse === 'gradient') {
                     // 虹色ボタン選択時 → ホログラム銀（対AI最強モード）
                     patternType = 'holographic';
-                } else if (colorModeToUse === 'white' || colorModeToUse === 'auto') {
+                } else if (colorModeToUse === 'white' || (colorModeToUse === 'auto' && !String(color).includes('0, 0, 0'))) {
                     // 白/自動 → チョーク
                     patternType = 'light';
                 }
@@ -2522,7 +2699,7 @@ function renderTextWatermarkToLayer(targetCtx, spacing, scale, angle, jitterStre
 
                 // Micro-Jitter: 少しずらして重ね書きすることで、線の輪郭をざらつかせる
                 // 透明度を下げて重ねることで、濃淡のムラも表現
-                targetCtx.globalAlpha = 0.6;
+                targetCtx.globalAlpha = patternType === 'dark' ? 0.9 : 0.72;
                 const passes = 3;
                 for (let k = 0; k < passes; k++) {
                     // ±0.75px の微小なズレ
@@ -2533,6 +2710,10 @@ function renderTextWatermarkToLayer(targetCtx, spacing, scale, angle, jitterStre
                 targetCtx.globalAlpha = 1.0; // 戻す
             } else {
                 // 通常描画
+                targetCtx.lineWidth = Math.max(1, finalFontSize * 0.08);
+                targetCtx.lineJoin = 'round';
+                targetCtx.strokeStyle = getReadableTextStroke(colorModeToUse, color);
+                targetCtx.strokeText(text, 0, 0);
                 targetCtx.fillStyle = color;
                 targetCtx.fillText(text, 0, 0);
             }
