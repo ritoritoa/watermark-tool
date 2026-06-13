@@ -128,6 +128,38 @@
                     </div>
 
                     <!-- テキストウォーターマーク設定 -->
+                    <div class="control-group spot-watermark-section" id="spotWatermarkSection">
+                        <label class="protection-label">
+                            <input type="checkbox" id="spotImageEnabled">
+                            <span>ワンポイント画像を重ねる</span>
+                        </label>
+                        <label class="watermark-upload-btn">
+                            画像を選択
+                            <input type="file" id="spotImageInput" accept="image/*" hidden>
+                        </label>
+                        <div id="spotImagePreview" class="watermark-image-preview"></div>
+                        <div class="spot-controls">
+                            <div class="control-group">
+                                <label for="spotOpacity">透明度: <span id="spotOpacityValue">80</span>%</label>
+                                <input type="range" id="spotOpacity" min="0" max="100" value="80">
+                            </div>
+                            <div class="control-group">
+                                <label for="spotScale">サイズ: <span id="spotScaleValue">35</span>%</label>
+                                <input type="range" id="spotScale" min="5" max="200" value="35">
+                            </div>
+                            <div class="position-grid">
+                                <div class="control-group">
+                                    <label for="spotX">X: <span id="spotXValue">50</span>%</label>
+                                    <input type="range" id="spotX" min="0" max="100" value="50">
+                                </div>
+                                <div class="control-group">
+                                    <label for="spotY">Y: <span id="spotYValue">50</span>%</label>
+                                    <input type="range" id="spotY" min="0" max="100" value="50">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="text-watermark-section" id="textWatermarkSection">
                         <div class="control-group">
                             <label for="watermarkText">ウォーターマークテキスト</label>
@@ -440,7 +472,7 @@
         </footer>
     </div>
 
-    <script src="app.js?v=63-debounce"></script>
+    <script src="app.js?v=65-spot-image"></script>
 </body>
 
 </html>

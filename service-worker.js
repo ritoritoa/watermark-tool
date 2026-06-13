@@ -1,4 +1,4 @@
-const CACHE_NAME = 'watermark-tool-v63-debounce';
+const CACHE_NAME = 'watermark-tool-v65-spot-image';
 // console.log('🔥 CACHE VERSION: v50 - FORCE UPDATE MODE 🔥');
 const ASSETS = [
     './',

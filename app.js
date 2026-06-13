@@ -4,7 +4,7 @@
  */
 
 // ビルドID（改ざん検出モードで使用）
-const BUILD_ID = 'v63-debounce';
+const BUILD_ID = 'v65-spot-image';
 
 // デバウンス用タイマー（スライダー操作時の連続レンダリングを抑制）
 let _pendingRender = null;
@@ -66,6 +66,19 @@ const imgJitterValue = document.getElementById('imgJitterValue');
 const imgScaleSlider = document.getElementById('imgScale');
 const imgScaleValue = document.getElementById('imgScaleValue');
 const imgBlendBtns = document.querySelectorAll('.img-blend-btn');
+
+// One-point image watermark elements
+const spotImageEnabled = document.getElementById('spotImageEnabled');
+const spotImageInput = document.getElementById('spotImageInput');
+const spotImagePreview = document.getElementById('spotImagePreview');
+const spotOpacitySlider = document.getElementById('spotOpacity');
+const spotOpacityValue = document.getElementById('spotOpacityValue');
+const spotScaleSlider = document.getElementById('spotScale');
+const spotScaleValue = document.getElementById('spotScaleValue');
+const spotXSlider = document.getElementById('spotX');
+const spotXValue = document.getElementById('spotXValue');
+const spotYSlider = document.getElementById('spotY');
+const spotYValue = document.getElementById('spotYValue');
 
 // 値表示要素
 const opacityValue = document.getElementById('opacityValue');
@@ -148,6 +161,7 @@ const vignetteSizeSlider = document.getElementById('vignetteSize');
 const vignetteSizeValue = document.getElementById('vignetteSizeValue');
 let currentVignetteColor = 'black';
 let watermarkImage = null;
+let spotImage = null;
 
 // =====================================================
 // 初期化・イベントリスナー設定
@@ -164,6 +178,7 @@ function init() {
     setupModeButtons();
     setupBlendButtons();
     setupWatermarkImageUpload();
+    setupSpotImageControls();
     setupEffectControls();
     setupPresetButtons();
 
@@ -319,6 +334,11 @@ function resetToDefaultPreset() {
     if (vignetteSlider) setSliderValue(vignetteSlider, vignetteValue, 0);
     if (textureSlider) setSliderValue(textureSlider, textureValue, 0);
     if (integrationSlider) setSliderValue(integrationSlider, integrationValue, 0);
+    if (spotImageEnabled) spotImageEnabled.checked = false;
+    setSliderValue(spotOpacitySlider, spotOpacityValue, 80);
+    setSliderValue(spotScaleSlider, spotScaleValue, 35);
+    setSliderValue(spotXSlider, spotXValue, 50);
+    setSliderValue(spotYSlider, spotYValue, 50);
 
     // 保存 & 再描画
     saveSettings();
@@ -365,6 +385,11 @@ function saveSettings() {
         imgSpacing: imgSpacingSlider?.value,
         imgJitter: imgJitterSlider?.value,
         imgScale: imgScaleSlider?.value,
+        spotImageEnabled: spotImageEnabled?.checked,
+        spotOpacity: spotOpacitySlider?.value,
+        spotScale: spotScaleSlider?.value,
+        spotX: spotXSlider?.value,
+        spotY: spotYSlider?.value,
 
         // 三層ノイズ
         threeLayerNoise: threeLayerNoiseCheckbox?.checked,
@@ -440,6 +465,13 @@ function loadSettings() {
         restoreSlider(imgSpacingSlider, imgSpacingValue, settings.imgSpacing);
         restoreSlider(imgJitterSlider, imgJitterValue, settings.imgJitter);
         restoreSlider(imgScaleSlider, imgScaleValue, settings.imgScale);
+        restoreSlider(spotOpacitySlider, spotOpacityValue, settings.spotOpacity);
+        restoreSlider(spotScaleSlider, spotScaleValue, settings.spotScale);
+        restoreSlider(spotXSlider, spotXValue, settings.spotX);
+        restoreSlider(spotYSlider, spotYValue, settings.spotY);
+        if (spotImageEnabled && settings.spotImageEnabled !== undefined) {
+            spotImageEnabled.checked = settings.spotImageEnabled;
+        }
 
         // 三層ノイズ
         restoreSlider(lowFreqNoiseSlider, lowFreqNoiseValue, settings.lowFreqNoise);
@@ -1346,6 +1378,68 @@ function setupWatermarkImageUpload() {
 }
 
 // フォント文字列を取得
+function setupSpotImageControls() {
+    if (spotImageInput) {
+        spotImageInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file || !file.type.startsWith('image/')) return;
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const img = new Image();
+                img.onload = () => {
+                    spotImage = img;
+                    if (spotImageEnabled) spotImageEnabled.checked = true;
+                    if (spotImagePreview) {
+                        spotImagePreview.innerHTML = `
+                            <img src="${event.target.result}" alt="Spot image">
+                            <span class="preview-label">ワンポイント画像を読み込みました</span>
+                        `;
+                    }
+                    saveSettings();
+                    scheduleRender();
+                };
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    if (spotImageEnabled) {
+        spotImageEnabled.addEventListener('change', () => {
+            saveSettings();
+            scheduleRender();
+        });
+    }
+
+    const spotSliders = [
+        [spotOpacitySlider, spotOpacityValue],
+        [spotScaleSlider, spotScaleValue],
+        [spotXSlider, spotXValue],
+        [spotYSlider, spotYValue]
+    ];
+
+    spotSliders.forEach(([slider, display]) => {
+        if (!slider) return;
+        slider.addEventListener('input', () => {
+            if (display) display.textContent = slider.value;
+            scheduleRender();
+        });
+    });
+
+    if (canvas) {
+        canvas.addEventListener('pointerdown', (event) => {
+            if (!spotImage || !spotImageEnabled || !spotImageEnabled.checked) return;
+            const rect = canvas.getBoundingClientRect();
+            const x = Math.round(((event.clientX - rect.left) / rect.width) * 100);
+            const y = Math.round(((event.clientY - rect.top) / rect.height) * 100);
+            setSliderValue(spotXSlider, spotXValue, Math.max(0, Math.min(100, x)));
+            setSliderValue(spotYSlider, spotYValue, Math.max(0, Math.min(100, y)));
+            scheduleRender();
+        });
+    }
+}
+
 function getFontString(fontSize) {
     switch (currentFont) {
         case 'italic':
@@ -1387,6 +1481,7 @@ function renderWatermark(forDownload = false) {
     // 共通設定を取得
     const angle = parseInt(angleSlider.value);
     const spacing = parseInt(spacingSlider.value);
+    const integrationStrength = integrationSlider ? parseInt(integrationSlider.value) : 0;
     // スライダーの存在チェックを追加（安全対策）
     const scale = typeof wmScaleSlider !== 'undefined' && wmScaleSlider ? (parseInt(wmScaleSlider.value) / 100) : 1;
     const jitterStrength = typeof jitterSlider !== 'undefined' && jitterSlider ? parseInt(jitterSlider.value) : 0;
@@ -1431,6 +1526,9 @@ function renderWatermark(forDownload = false) {
         if (noiseProtection.checked) {
             addNoiseProtectionToLayer(textCtx, textCanvas.width, textCanvas.height);
         }
+
+        // Blend the text layer into the underlying image before compositing.
+        applyTextIntegrationToLayer(textCtx, textCanvas.width, textCanvas.height, integrationStrength);
     }
 
     // === 画像透かしの描画（画像専用キャンバス） ===
@@ -1479,6 +1577,8 @@ function renderWatermark(forDownload = false) {
         ctx.drawImage(imgCanvas, 0, 0);
     }
 
+    renderSpotImage();
+
     // 合成設定をリセット
     ctx.globalAlpha = 1;
     ctx.globalCompositeOperation = 'source-over';
@@ -1486,7 +1586,6 @@ function renderWatermark(forDownload = false) {
     // 5. 仕上げエフェクト（全体になじませるため、最後にかける）
     const vignetteStrength = parseInt(vignetteSlider.value);
     const textureStrength = parseInt(textureSlider.value);
-    const integrationStrength = parseInt(integrationSlider.value);
 
     // ビネット（四隅）
     if (vignetteStrength > 0) {
@@ -1670,6 +1769,57 @@ function renderTexture(strength, alphaScale = 1.0) {
 
 // アナログ風ノイズパターン生成（鉛筆の粉のような質感）
 // type: 'dark' (鉛筆/黒) または 'light' (チョーク/白)
+function renderSpotImage() {
+    if (!spotImage || !spotImageEnabled || !spotImageEnabled.checked) return;
+
+    const opacity = spotOpacitySlider ? parseInt(spotOpacitySlider.value) / 100 : 0.8;
+    const scalePercent = spotScaleSlider ? parseInt(spotScaleSlider.value) : 35;
+    const xPercent = spotXSlider ? parseInt(spotXSlider.value) : 50;
+    const yPercent = spotYSlider ? parseInt(spotYSlider.value) : 50;
+
+    const drawWidth = canvas.width * (scalePercent / 100);
+    const drawHeight = drawWidth * (spotImage.height / spotImage.width);
+    const x = canvas.width * (xPercent / 100) - drawWidth / 2;
+    const y = canvas.height * (yPercent / 100) - drawHeight / 2;
+
+    ctx.save();
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.globalAlpha = opacity;
+    ctx.drawImage(spotImage, x, y, drawWidth, drawHeight);
+    ctx.restore();
+}
+
+// Text integration: soften text pixels toward the underlying image.
+function applyTextIntegrationToLayer(targetCtx, width, height, strength) {
+    if (!strength || strength <= 0) return;
+
+    const amount = Math.min(1, Math.max(0, strength / 100));
+    const textImage = targetCtx.getImageData(0, 0, width, height);
+    const textData = textImage.data;
+    const baseData = ctx.getImageData(0, 0, width, height).data;
+
+    for (let i = 0; i < textData.length; i += 4) {
+        const alpha = textData[i + 3];
+        if (alpha === 0) continue;
+
+        const bgR = baseData[i];
+        const bgG = baseData[i + 1];
+        const bgB = baseData[i + 2];
+        const grain = Math.sin(i * 12.9898) * 43758.5453;
+        const grainUnit = grain - Math.floor(grain) - 0.5;
+        const alphaScale = 1 - amount * 0.08 + grainUnit * amount * 0.06;
+        const colorMix = amount * 0.22;
+
+        textData[i] = textData[i] * (1 - colorMix) + bgR * colorMix;
+        textData[i + 1] = textData[i + 1] * (1 - colorMix) + bgG * colorMix;
+        textData[i + 2] = textData[i + 2] * (1 - colorMix) + bgB * colorMix;
+        textData[i + 3] = Math.max(0, Math.min(255, alpha * alphaScale));
+    }
+
+    targetCtx.putImageData(textImage, 0, 0);
+}
+
+// Analog noise pattern generation.
 function createAnalogNoisePattern(ctx, type = 'dark') {
     const pCanvas = document.createElement('canvas');
     pCanvas.width = 64;
