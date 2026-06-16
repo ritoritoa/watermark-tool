@@ -523,6 +523,13 @@ input[type="range"]::-webkit-slider-thumb:hover {
     border: 1px solid var(--border-color);
 }
 
+.spot-slot-secondary summary {
+    cursor: pointer;
+    color: var(--text-primary);
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+}
+
 .spot-controls {
     margin-top: 0.75rem;
 }

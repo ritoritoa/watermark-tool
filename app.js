@@ -4,7 +4,7 @@
  */
 
 // ビルドID（改ざん検出モードで使用）
-const BUILD_ID = 'v68-spot-blend';
+const BUILD_ID = 'v70-dual-spot-save';
 
 // デバウンス用タイマー（スライダー操作時の連続レンダリングを抑制）
 let _pendingRender = null;
@@ -88,6 +88,26 @@ const spotTrapSpreadSlider = document.getElementById('spotTrapSpread');
 const spotTrapSpreadValue = document.getElementById('spotTrapSpreadValue');
 const spotTrapVisibilitySlider = document.getElementById('spotTrapVisibility');
 const spotTrapVisibilityValue = document.getElementById('spotTrapVisibilityValue');
+const spotImageEnabled2 = document.getElementById('spotImageEnabled2');
+const spotImageInput2 = document.getElementById('spotImageInput2');
+const spotImagePreview2 = document.getElementById('spotImagePreview2');
+const spotOpacitySlider2 = document.getElementById('spotOpacity2');
+const spotOpacityValue2 = document.getElementById('spotOpacityValue2');
+const spotBlendSlider2 = document.getElementById('spotBlend2');
+const spotBlendValue2 = document.getElementById('spotBlendValue2');
+const spotScaleSlider2 = document.getElementById('spotScale2');
+const spotScaleValue2 = document.getElementById('spotScaleValue2');
+const spotXSlider2 = document.getElementById('spotX2');
+const spotXValue2 = document.getElementById('spotXValue2');
+const spotYSlider2 = document.getElementById('spotY2');
+const spotYValue2 = document.getElementById('spotYValue2');
+const spotTrapEnabled2 = document.getElementById('spotTrapEnabled2');
+const spotTrapStrengthSlider2 = document.getElementById('spotTrapStrength2');
+const spotTrapStrengthValue2 = document.getElementById('spotTrapStrengthValue2');
+const spotTrapSpreadSlider2 = document.getElementById('spotTrapSpread2');
+const spotTrapSpreadValue2 = document.getElementById('spotTrapSpreadValue2');
+const spotTrapVisibilitySlider2 = document.getElementById('spotTrapVisibility2');
+const spotTrapVisibilityValue2 = document.getElementById('spotTrapVisibilityValue2');
 
 // 値表示要素
 const opacityValue = document.getElementById('opacityValue');
@@ -171,6 +191,7 @@ const vignetteSizeValue = document.getElementById('vignetteSizeValue');
 let currentVignetteColor = 'black';
 let watermarkImage = null;
 let spotImage = null;
+let spotImage2 = null;
 
 // =====================================================
 // 初期化・イベントリスナー設定
@@ -370,6 +391,16 @@ function resetToDefaultPreset() {
     setSliderValue(spotTrapStrengthSlider, spotTrapStrengthValue, 45);
     setSliderValue(spotTrapSpreadSlider, spotTrapSpreadValue, 85);
     setSliderValue(spotTrapVisibilitySlider, spotTrapVisibilityValue, 35);
+    if (spotImageEnabled2) spotImageEnabled2.checked = false;
+    setSliderValue(spotOpacitySlider2, spotOpacityValue2, 80);
+    setSliderValue(spotBlendSlider2, spotBlendValue2, 0);
+    setSliderValue(spotScaleSlider2, spotScaleValue2, 25);
+    setSliderValue(spotXSlider2, spotXValue2, 75);
+    setSliderValue(spotYSlider2, spotYValue2, 75);
+    if (spotTrapEnabled2) spotTrapEnabled2.checked = false;
+    setSliderValue(spotTrapStrengthSlider2, spotTrapStrengthValue2, 45);
+    setSliderValue(spotTrapSpreadSlider2, spotTrapSpreadValue2, 85);
+    setSliderValue(spotTrapVisibilitySlider2, spotTrapVisibilityValue2, 35);
 
     // 保存 & 再描画
     saveSettings();
@@ -426,6 +457,16 @@ function saveSettings() {
         spotTrapStrength: spotTrapStrengthSlider?.value,
         spotTrapSpread: spotTrapSpreadSlider?.value,
         spotTrapVisibility: spotTrapVisibilitySlider?.value,
+        spotImageEnabled2: spotImageEnabled2?.checked,
+        spotOpacity2: spotOpacitySlider2?.value,
+        spotBlend2: spotBlendSlider2?.value,
+        spotScale2: spotScaleSlider2?.value,
+        spotX2: spotXSlider2?.value,
+        spotY2: spotYSlider2?.value,
+        spotTrapEnabled2: spotTrapEnabled2?.checked,
+        spotTrapStrength2: spotTrapStrengthSlider2?.value,
+        spotTrapSpread2: spotTrapSpreadSlider2?.value,
+        spotTrapVisibility2: spotTrapVisibilitySlider2?.value,
 
         // 三層ノイズ
         threeLayerNoise: threeLayerNoiseCheckbox?.checked,
@@ -514,6 +555,20 @@ function loadSettings() {
         }
         if (spotTrapEnabled && settings.spotTrapEnabled !== undefined) {
             spotTrapEnabled.checked = settings.spotTrapEnabled;
+        }
+        restoreSlider(spotOpacitySlider2, spotOpacityValue2, settings.spotOpacity2);
+        restoreSlider(spotBlendSlider2, spotBlendValue2, settings.spotBlend2);
+        restoreSlider(spotScaleSlider2, spotScaleValue2, settings.spotScale2);
+        restoreSlider(spotXSlider2, spotXValue2, settings.spotX2);
+        restoreSlider(spotYSlider2, spotYValue2, settings.spotY2);
+        restoreSlider(spotTrapStrengthSlider2, spotTrapStrengthValue2, settings.spotTrapStrength2);
+        restoreSlider(spotTrapSpreadSlider2, spotTrapSpreadValue2, settings.spotTrapSpread2);
+        restoreSlider(spotTrapVisibilitySlider2, spotTrapVisibilityValue2, settings.spotTrapVisibility2);
+        if (spotImageEnabled2 && settings.spotImageEnabled2 !== undefined) {
+            spotImageEnabled2.checked = settings.spotImageEnabled2;
+        }
+        if (spotTrapEnabled2 && settings.spotTrapEnabled2 !== undefined) {
+            spotTrapEnabled2.checked = settings.spotTrapEnabled2;
         }
 
         // 三層ノイズ
@@ -1447,6 +1502,31 @@ function setupSpotImageControls() {
             reader.readAsDataURL(file);
         });
     }
+    if (spotImageInput2) {
+        spotImageInput2.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file || !file.type.startsWith('image/')) return;
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const img = new Image();
+                img.onload = () => {
+                    spotImage2 = img;
+                    if (spotImageEnabled2) spotImageEnabled2.checked = true;
+                    if (spotImagePreview2) {
+                        spotImagePreview2.innerHTML = `
+                            <img src="${event.target.result}" alt="Spot image 2">
+                            <span class="preview-label">ワンポイント画像2を読み込みました</span>
+                        `;
+                    }
+                    saveSettings();
+                    scheduleRender();
+                };
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+    }
 
     if (spotImageEnabled) {
         spotImageEnabled.addEventListener('change', () => {
@@ -1460,6 +1540,18 @@ function setupSpotImageControls() {
             scheduleRender();
         });
     }
+    if (spotImageEnabled2) {
+        spotImageEnabled2.addEventListener('change', () => {
+            saveSettings();
+            scheduleRender();
+        });
+    }
+    if (spotTrapEnabled2) {
+        spotTrapEnabled2.addEventListener('change', () => {
+            saveSettings();
+            scheduleRender();
+        });
+    }
 
     const spotSliders = [
         [spotOpacitySlider, spotOpacityValue],
@@ -1469,25 +1561,41 @@ function setupSpotImageControls() {
         [spotYSlider, spotYValue],
         [spotTrapStrengthSlider, spotTrapStrengthValue],
         [spotTrapSpreadSlider, spotTrapSpreadValue],
-        [spotTrapVisibilitySlider, spotTrapVisibilityValue]
+        [spotTrapVisibilitySlider, spotTrapVisibilityValue],
+        [spotOpacitySlider2, spotOpacityValue2],
+        [spotBlendSlider2, spotBlendValue2],
+        [spotScaleSlider2, spotScaleValue2],
+        [spotXSlider2, spotXValue2],
+        [spotYSlider2, spotYValue2],
+        [spotTrapStrengthSlider2, spotTrapStrengthValue2],
+        [spotTrapSpreadSlider2, spotTrapSpreadValue2],
+        [spotTrapVisibilitySlider2, spotTrapVisibilityValue2]
     ];
 
     spotSliders.forEach(([slider, display]) => {
         if (!slider) return;
         slider.addEventListener('input', () => {
             if (display) display.textContent = slider.value;
+            saveSettings();
             scheduleRender();
         });
     });
 
     if (canvas) {
         canvas.addEventListener('pointerdown', (event) => {
-            if (!spotImage || !spotImageEnabled || !spotImageEnabled.checked) return;
+            const secondSection = document.getElementById('spotWatermarkSection2');
+            const useSecond = secondSection && secondSection.open && spotImage2 && spotImageEnabled2 && spotImageEnabled2.checked;
+            if (!useSecond && (!spotImage || !spotImageEnabled || !spotImageEnabled.checked)) return;
             const rect = canvas.getBoundingClientRect();
             const x = Math.round(((event.clientX - rect.left) / rect.width) * 100);
             const y = Math.round(((event.clientY - rect.top) / rect.height) * 100);
-            setSliderValue(spotXSlider, spotXValue, Math.max(0, Math.min(100, x)));
-            setSliderValue(spotYSlider, spotYValue, Math.max(0, Math.min(100, y)));
+            if (useSecond) {
+                setSliderValue(spotXSlider2, spotXValue2, Math.max(0, Math.min(100, x)));
+                setSliderValue(spotYSlider2, spotYValue2, Math.max(0, Math.min(100, y)));
+            } else {
+                setSliderValue(spotXSlider, spotXValue, Math.max(0, Math.min(100, x)));
+                setSliderValue(spotYSlider, spotYValue, Math.max(0, Math.min(100, y)));
+            }
             scheduleRender();
         });
     }
@@ -1638,7 +1746,9 @@ function renderWatermark(forDownload = false) {
     }
 
     renderSpotImage();
+    renderSpotImage2();
     renderSpotTrapNoise();
+    renderSpotTrapNoise2();
 
     // 合成設定をリセット
     ctx.globalAlpha = 1;
@@ -1864,6 +1974,40 @@ function renderSpotImage() {
     ctx.restore();
 }
 
+function renderSpotImage2() {
+    if (!spotImage2 || !spotImageEnabled2 || !spotImageEnabled2.checked) return;
+
+    const opacity = spotOpacitySlider2 ? parseInt(spotOpacitySlider2.value) / 100 : 0.8;
+    const scalePercent = spotScaleSlider2 ? parseInt(spotScaleSlider2.value) : 25;
+    const xPercent = spotXSlider2 ? parseInt(spotXSlider2.value) : 75;
+    const yPercent = spotYSlider2 ? parseInt(spotYSlider2.value) : 75;
+
+    const drawWidth = canvas.width * (scalePercent / 100);
+    const drawHeight = drawWidth * (spotImage2.height / spotImage2.width);
+    const x = canvas.width * (xPercent / 100) - drawWidth / 2;
+    const y = canvas.height * (yPercent / 100) - drawHeight / 2;
+
+    const spotCanvas = document.createElement('canvas');
+    spotCanvas.width = canvas.width;
+    spotCanvas.height = canvas.height;
+    const spotCtx = spotCanvas.getContext('2d');
+    spotCtx.drawImage(spotImage2, x, y, drawWidth, drawHeight);
+
+    const blendStrength = spotBlendSlider2 ? parseInt(spotBlendSlider2.value) : 0;
+    applySpotBlendToLayer(spotCtx, canvas.width, canvas.height, blendStrength, {
+        centerX: canvas.width * (xPercent / 100),
+        centerY: canvas.height * (yPercent / 100),
+        width: drawWidth,
+        height: drawHeight
+    });
+
+    ctx.save();
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.globalAlpha = opacity;
+    ctx.drawImage(spotCanvas, 0, 0);
+    ctx.restore();
+}
+
 function seededUnit(seed) {
     const value = Math.sin(seed) * 43758.5453123;
     return value - Math.floor(value);
@@ -1962,6 +2106,108 @@ function renderSpotTrapNoise() {
             data[idx] = val;
             data[idx + 1] = 255 - val * 0.35;
             data[idx + 2] = 128 - signed * 55;
+            data[idx + 3] = 150;
+        }
+    }
+    patternCtx.putImageData(imageData, 0, 0);
+
+    const pattern = trapCtx.createPattern(patternCanvas, 'repeat');
+    trapCtx.save();
+    trapCtx.translate(centerX % 128, centerY % 128);
+    trapCtx.fillStyle = pattern;
+    trapCtx.fillRect(-128, -128, canvas.width + 256, canvas.height + 256);
+    trapCtx.restore();
+
+    const reach = maxDim * (0.2 + spreadNorm * 0.95);
+    const threadCount = Math.floor(28 + 120 * strengthNorm * spreadNorm);
+    trapCtx.lineCap = 'round';
+    trapCtx.lineJoin = 'round';
+
+    for (let i = 0; i < threadCount; i++) {
+        const r1 = seededUnit(seed + i * 31.7);
+        const r2 = seededUnit(seed + i * 53.1);
+        const r3 = seededUnit(seed + i * 97.9);
+        const angle = r1 * Math.PI * 2;
+        const startRadius = spotWidth * (0.15 + r2 * 0.35);
+        const length = reach * (0.18 + r3 * 0.82);
+        const bend = (seededUnit(seed + i * 11.3) - 0.5) * Math.PI * 0.65;
+        const x0 = centerX + Math.cos(angle) * startRadius;
+        const y0 = centerY + Math.sin(angle) * startRadius;
+        const x1 = centerX + Math.cos(angle + bend) * length;
+        const y1 = centerY + Math.sin(angle + bend) * length;
+        const cx = centerX + Math.cos(angle + bend * 0.5) * length * 0.48;
+        const cy = centerY + Math.sin(angle + bend * 0.5) * length * 0.48;
+        const alpha = (0.025 + r2 * 0.05) * strengthNorm * visibilityNorm;
+        const bright = i % 2 === 0 ? 255 : 0;
+
+        trapCtx.beginPath();
+        trapCtx.moveTo(x0, y0);
+        trapCtx.quadraticCurveTo(cx, cy, x1, y1);
+        trapCtx.strokeStyle = `rgba(${bright}, ${bright}, ${bright}, ${alpha})`;
+        trapCtx.lineWidth = 0.35 + r3 * 1.4 * strengthNorm;
+        trapCtx.stroke();
+    }
+
+    const particleCount = Math.floor(400 + 2600 * strengthNorm * spreadNorm);
+    for (let i = 0; i < particleCount; i++) {
+        const angle = seededUnit(seed + i * 5.19) * Math.PI * 2;
+        const radius = reach * Math.sqrt(seededUnit(seed + i * 7.91));
+        const x = centerX + Math.cos(angle) * radius;
+        const y = centerY + Math.sin(angle) * radius;
+        if (x < 0 || x >= canvas.width || y < 0 || y >= canvas.height) continue;
+        const v = seededUnit(seed + i * 13.37) > 0.5 ? 255 : 0;
+        trapCtx.fillStyle = `rgba(${v}, ${v}, ${v}, ${0.025 * strengthNorm * visibilityNorm})`;
+        trapCtx.fillRect(x, y, 1, 1);
+    }
+
+    ctx.save();
+    ctx.globalCompositeOperation = 'overlay';
+    ctx.globalAlpha = Math.min(0.28, 0.04 + strengthNorm * visibilityNorm * 0.22);
+    ctx.drawImage(trapCanvas, 0, 0);
+    ctx.restore();
+}
+
+function renderSpotTrapNoise2() {
+    if (!spotImage2 || !spotImageEnabled2 || !spotImageEnabled2.checked) return;
+    if (!spotTrapEnabled2 || !spotTrapEnabled2.checked) return;
+
+    const strength = spotTrapStrengthSlider2 ? parseInt(spotTrapStrengthSlider2.value) : 45;
+    const spread = spotTrapSpreadSlider2 ? parseInt(spotTrapSpreadSlider2.value) : 85;
+    const visibility = spotTrapVisibilitySlider2 ? parseInt(spotTrapVisibilitySlider2.value) : 35;
+    if (strength <= 0 || visibility <= 0) return;
+
+    const strengthNorm = Math.min(1, Math.max(0, strength / 100));
+    const spreadNorm = Math.min(1, Math.max(0.1, spread / 100));
+    const visibilityNorm = Math.min(1, Math.max(0, visibility / 100));
+    const scalePercent = spotScaleSlider2 ? parseInt(spotScaleSlider2.value) : 25;
+    const centerX = canvas.width * ((spotXSlider2 ? parseInt(spotXSlider2.value) : 75) / 100);
+    const centerY = canvas.height * ((spotYSlider2 ? parseInt(spotYSlider2.value) : 75) / 100);
+    const spotWidth = canvas.width * (scalePercent / 100);
+    const maxDim = Math.max(canvas.width, canvas.height);
+    const seed = 100003 + Math.floor(centerX * 13 + centerY * 17 + spotWidth * 19 + spotImage2.width * 23 + spotImage2.height * 29);
+
+    const trapCanvas = document.createElement('canvas');
+    trapCanvas.width = canvas.width;
+    trapCanvas.height = canvas.height;
+    const trapCtx = trapCanvas.getContext('2d');
+
+    const patternCanvas = document.createElement('canvas');
+    patternCanvas.width = 128;
+    patternCanvas.height = 128;
+    const patternCtx = patternCanvas.getContext('2d');
+    const imageData = patternCtx.createImageData(128, 128);
+    const data = imageData.data;
+
+    for (let y = 0; y < 128; y++) {
+        for (let x = 0; x < 128; x++) {
+            const idx = (y * 128 + x) * 4;
+            const n = seededUnit(seed + x * 12.9898 + y * 78.233);
+            const wave = Math.sin((x + y) * 0.17 + seed * 0.019) * 0.5 + 0.5;
+            const signed = (n * 0.7 + wave * 0.3 - 0.5) * 2;
+            const val = Math.max(0, Math.min(255, 128 + signed * 95));
+            data[idx] = 128 - signed * 45;
+            data[idx + 1] = val;
+            data[idx + 2] = 255 - val * 0.28;
             data[idx + 3] = 150;
         }
     }

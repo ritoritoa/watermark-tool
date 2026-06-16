@@ -183,6 +183,62 @@
                         </div>
                     </div>
 
+                    <details class="control-group spot-watermark-section spot-slot-secondary" id="spotWatermarkSection2">
+                        <summary>ワンポイント画像 2</summary>
+                        <label class="protection-label">
+                            <input type="checkbox" id="spotImageEnabled2">
+                            <span>ワンポイント画像2を重ねる</span>
+                        </label>
+                        <label class="watermark-upload-btn">
+                            画像を選択
+                            <input type="file" id="spotImageInput2" accept="image/*" hidden>
+                        </label>
+                        <div id="spotImagePreview2" class="watermark-image-preview"></div>
+                        <div class="spot-controls">
+                            <div class="control-group">
+                                <label for="spotOpacity2">透明度: <span id="spotOpacityValue2">80</span>%</label>
+                                <input type="range" id="spotOpacity2" min="0" max="100" value="80">
+                            </div>
+                            <div class="control-group">
+                                <label for="spotScale2">サイズ: <span id="spotScaleValue2">25</span>%</label>
+                                <input type="range" id="spotScale2" min="5" max="200" value="25">
+                            </div>
+                            <div class="control-group">
+                                <label for="spotBlend2">ワンポイントのなじみ度: <span id="spotBlendValue2">0</span>%</label>
+                                <input type="range" id="spotBlend2" min="0" max="100" value="0">
+                            </div>
+                            <div class="position-grid">
+                                <div class="control-group">
+                                    <label for="spotX2">X: <span id="spotXValue2">75</span>%</label>
+                                    <input type="range" id="spotX2" min="0" max="100" value="75">
+                                </div>
+                                <div class="control-group">
+                                    <label for="spotY2">Y: <span id="spotYValue2">75</span>%</label>
+                                    <input type="range" id="spotY2" min="0" max="100" value="75">
+                                </div>
+                            </div>
+                            <div class="spot-trap-controls">
+                                <label class="protection-label">
+                                    <input type="checkbox" id="spotTrapEnabled2">
+                                    <span>ワンポイント連動ノイズ2</span>
+                                </label>
+                                <div class="control-group">
+                                    <label for="spotTrapStrength2">破壊トラップ強度: <span id="spotTrapStrengthValue2">45</span>%</label>
+                                    <input type="range" id="spotTrapStrength2" min="0" max="100" value="45">
+                                </div>
+                                <div class="control-group">
+                                    <label for="spotTrapSpread2">波及範囲: <span id="spotTrapSpreadValue2">85</span>%</label>
+                                    <input type="range" id="spotTrapSpread2" min="10" max="100" value="85">
+                                </div>
+                                <div class="control-group">
+                                    <label for="spotTrapVisibility2">可視度: <span id="spotTrapVisibilityValue2">35</span>%</label>
+                                    <input type="range" id="spotTrapVisibility2" min="0" max="100" value="35">
+                                </div>
+                                <p class="slider-hint">2つ目のワンポイント位置を種に、別系統の相関ノイズを重ねます。</p>
+                            </div>
+                        </div>
+                    </details>
+
                     <div class="text-watermark-section" id="textWatermarkSection">
                         <div class="control-group">
                             <label for="watermarkText">ウォーターマークテキスト</label>
@@ -495,7 +551,7 @@
         </footer>
     </div>
 
-    <script src="app.js?v=68-spot-blend"></script>
+    <script src="app.js?v=70-dual-spot-save"></script>
 </body>
 
 </html>
