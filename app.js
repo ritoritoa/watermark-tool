@@ -4,7 +4,7 @@
  */
 
 // ビルドID（改ざん検出モードで使用）
-const BUILD_ID = 'v67-spot-trap';
+const BUILD_ID = 'v68-spot-blend';
 
 // デバウンス用タイマー（スライダー操作時の連続レンダリングを抑制）
 let _pendingRender = null;
@@ -73,6 +73,8 @@ const spotImageInput = document.getElementById('spotImageInput');
 const spotImagePreview = document.getElementById('spotImagePreview');
 const spotOpacitySlider = document.getElementById('spotOpacity');
 const spotOpacityValue = document.getElementById('spotOpacityValue');
+const spotBlendSlider = document.getElementById('spotBlend');
+const spotBlendValue = document.getElementById('spotBlendValue');
 const spotScaleSlider = document.getElementById('spotScale');
 const spotScaleValue = document.getElementById('spotScaleValue');
 const spotXSlider = document.getElementById('spotX');
@@ -360,6 +362,7 @@ function resetToDefaultPreset() {
     if (integrationSlider) setSliderValue(integrationSlider, integrationValue, 0);
     if (spotImageEnabled) spotImageEnabled.checked = false;
     setSliderValue(spotOpacitySlider, spotOpacityValue, 80);
+    setSliderValue(spotBlendSlider, spotBlendValue, 0);
     setSliderValue(spotScaleSlider, spotScaleValue, 35);
     setSliderValue(spotXSlider, spotXValue, 50);
     setSliderValue(spotYSlider, spotYValue, 50);
@@ -415,6 +418,7 @@ function saveSettings() {
         imgScale: imgScaleSlider?.value,
         spotImageEnabled: spotImageEnabled?.checked,
         spotOpacity: spotOpacitySlider?.value,
+        spotBlend: spotBlendSlider?.value,
         spotScale: spotScaleSlider?.value,
         spotX: spotXSlider?.value,
         spotY: spotYSlider?.value,
@@ -498,6 +502,7 @@ function loadSettings() {
         restoreSlider(imgJitterSlider, imgJitterValue, settings.imgJitter);
         restoreSlider(imgScaleSlider, imgScaleValue, settings.imgScale);
         restoreSlider(spotOpacitySlider, spotOpacityValue, settings.spotOpacity);
+        restoreSlider(spotBlendSlider, spotBlendValue, settings.spotBlend);
         restoreSlider(spotScaleSlider, spotScaleValue, settings.spotScale);
         restoreSlider(spotXSlider, spotXValue, settings.spotX);
         restoreSlider(spotYSlider, spotYValue, settings.spotY);
@@ -1458,6 +1463,7 @@ function setupSpotImageControls() {
 
     const spotSliders = [
         [spotOpacitySlider, spotOpacityValue],
+        [spotBlendSlider, spotBlendValue],
         [spotScaleSlider, spotScaleValue],
         [spotXSlider, spotXValue],
         [spotYSlider, spotYValue],
@@ -1837,16 +1843,82 @@ function renderSpotImage() {
     const x = canvas.width * (xPercent / 100) - drawWidth / 2;
     const y = canvas.height * (yPercent / 100) - drawHeight / 2;
 
+    const spotCanvas = document.createElement('canvas');
+    spotCanvas.width = canvas.width;
+    spotCanvas.height = canvas.height;
+    const spotCtx = spotCanvas.getContext('2d');
+    spotCtx.drawImage(spotImage, x, y, drawWidth, drawHeight);
+
+    const blendStrength = spotBlendSlider ? parseInt(spotBlendSlider.value) : 0;
+    applySpotBlendToLayer(spotCtx, canvas.width, canvas.height, blendStrength, {
+        centerX: canvas.width * (xPercent / 100),
+        centerY: canvas.height * (yPercent / 100),
+        width: drawWidth,
+        height: drawHeight
+    });
+
     ctx.save();
     ctx.globalCompositeOperation = 'source-over';
     ctx.globalAlpha = opacity;
-    ctx.drawImage(spotImage, x, y, drawWidth, drawHeight);
+    ctx.drawImage(spotCanvas, 0, 0);
     ctx.restore();
 }
 
 function seededUnit(seed) {
     const value = Math.sin(seed) * 43758.5453123;
     return value - Math.floor(value);
+}
+
+function applySpotBlendToLayer(layerCtx, width, height, strength, placement) {
+    if (!strength || strength <= 0) return;
+
+    const amount = Math.min(1, Math.max(0, strength / 100));
+    const layerImage = layerCtx.getImageData(0, 0, width, height);
+    const layerData = layerImage.data;
+    const baseData = ctx.getImageData(0, 0, width, height).data;
+    const seed = Math.floor(
+        placement.centerX * 17 +
+        placement.centerY * 31 +
+        placement.width * 43 +
+        placement.height * 59
+    );
+
+    for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+            const idx = (y * width + x) * 4;
+            const alpha = layerData[idx + 3];
+            if (alpha === 0) continue;
+
+            const alphaNorm = alpha / 255;
+            const edgeFactor = 1 - Math.min(1, alphaNorm * 1.35);
+            const dx = (x - placement.centerX) / Math.max(1, placement.width);
+            const dy = (y - placement.centerY) / Math.max(1, placement.height);
+            const radial = Math.min(1, Math.sqrt(dx * dx + dy * dy) * 2.2);
+            const grain = seededUnit(seed + x * 12.9898 + y * 78.233) - 0.5;
+            const thread = Math.sin((x - placement.centerX) * 0.09 + (y - placement.centerY) * 0.05 + seed * 0.013);
+            const mix = amount * (0.08 + edgeFactor * 0.16 + radial * 0.04);
+            const texture = amount * (grain * 10 + thread * 3);
+            const alphaScale = 1 - amount * edgeFactor * 0.16 + grain * amount * 0.035;
+
+            const bgR = baseData[idx];
+            const bgG = baseData[idx + 1];
+            const bgB = baseData[idx + 2];
+
+            layerData[idx] = Math.max(0, Math.min(255, layerData[idx] * (1 - mix) + bgR * mix + texture));
+            layerData[idx + 1] = Math.max(0, Math.min(255, layerData[idx + 1] * (1 - mix) + bgG * mix + texture));
+            layerData[idx + 2] = Math.max(0, Math.min(255, layerData[idx + 2] * (1 - mix) + bgB * mix + texture));
+            layerData[idx + 3] = Math.max(0, Math.min(255, alpha * alphaScale));
+        }
+    }
+
+    layerCtx.putImageData(layerImage, 0, 0);
+
+    layerCtx.save();
+    layerCtx.globalCompositeOperation = 'source-atop';
+    layerCtx.globalAlpha = Math.min(0.18, amount * 0.16);
+    layerCtx.fillStyle = createTrapNoisePattern(layerCtx);
+    layerCtx.fillRect(0, 0, width, height);
+    layerCtx.restore();
 }
 
 function renderSpotTrapNoise() {

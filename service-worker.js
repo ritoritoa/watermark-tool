@@ -1,4 +1,4 @@
-const CACHE_NAME = 'watermark-tool-v67-spot-trap';
+const CACHE_NAME = 'watermark-tool-v68-spot-blend';
 // console.log('🔥 CACHE VERSION: v50 - FORCE UPDATE MODE 🔥');
 const ASSETS = [
     './',
